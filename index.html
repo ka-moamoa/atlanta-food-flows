@@ -115,6 +115,17 @@ table.all td.n{font-family:var(--mono);font-variant-numeric:tabular-nums;text-al
 .view[hidden]{display:none}
 #view-map{display:flex;flex-direction:column;gap:12px;flex:1}
 
+/* about tab */
+.about{max-width:80ch;display:block}
+.about h2{margin:26px 0 8px;font:700 22px/1.1 var(--display);text-wrap:balance}
+.about p,.about li{font-size:14px;line-height:1.55}
+.about ul,.about ol{padding-left:22px;margin:6px 0}
+.about li{margin:4px 0}
+.about-t td,.about-t th{font-size:13px} .about-t td small{color:var(--ink-3)}
+.about-t{margin:8px 0 6px}
+a.help{color:var(--food);text-decoration:none;border-bottom:1px solid var(--food);font-size:13px;white-space:nowrap}
+a.help:hover{border-bottom-width:2px}
+.view-about-wrap{overflow-x:auto}
 /* food security tab */
 .sec{display:flex;flex-direction:column;gap:22px;max-width:1180px}
 .sec .lede{color:var(--ink-2);max-width:70ch;margin:0}
@@ -166,7 +177,7 @@ table.sec-t td.n,table.sec-t th.n{font-family:var(--mono);font-variant-numeric:t
     <div class="brand">
       <div class="eyebrow">IRS Form 990 e-file &middot; Schedule I Part II &amp; 990-PF Part XV</div>
       <h1>Atlanta Food Flows</h1>
-      <p>Food and cash moving between Atlanta-area food nonprofits, their partner agencies, and the national networks that supply them. Each line is a grant one organization reported giving another, valued as filed.</p>
+      <p>Food and cash moving between Atlanta-area food nonprofits, their partner agencies, and the national networks that supply them. Each line is a grant one organization reported giving another, valued as filed. <a href="#" data-goto="about" class="help">How to read this</a></p>
     </div>
     <div class="stats" id="stats"></div>
   </header>
@@ -174,7 +185,105 @@ table.sec-t td.n,table.sec-t th.n{font-family:var(--mono);font-variant-numeric:t
   <nav class="tabs" role="tablist" aria-label="Views">
     <button type="button" role="tab" id="tab-map" aria-selected="true" aria-controls="view-map">Flow map</button>
     <button type="button" role="tab" id="tab-sec" aria-selected="false" aria-controls="view-sec">Food security</button>
+    <button type="button" role="tab" id="tab-about" aria-selected="false" aria-controls="view-about">About the data</button>
   </nav>
+
+  <section class="view about" id="view-about" role="tabpanel" aria-labelledby="tab-about" hidden>
+    <p class="lede">This page maps where food and the money behind it move among Atlanta-area food nonprofits. Everything on it is reconstructed from public filings. This note explains what each source contributes, how the pieces were joined, what was assumed, and where the picture is known to be incomplete. It is written for researchers and practitioners who want to use or check the figures.</p>
+
+    <h2>What the map shows</h2>
+    <p>Each line in the flow map is a grant that one organization reported giving to another: the giver's name, the recipient's name and usually its employer identification number, the cash amount, and the value of any noncash assistance such as food. Node size and ribbon width scale with dollars. Green is food (noncash), amber is cash. The map covers organizations in the Atlanta area, the outside organizations that supply or fund them, and the local agencies that receive from them. It is a map of <em>reported</em> transfers between organizations, not a census of all food moving through the region.</p>
+
+    <h2>Sources</h2>
+    <table class="sec-t about-t"><thead><tr><th>Source</th><th>What is taken from it</th><th>Coverage here</th></tr></thead><tbody>
+      <tr><td><b>IRS Form 990 e-file returns</b><br><small>Internal Revenue Service, Tax Exempt Organization Search bulk data</small></td><td>Schedule I Part II: grants and noncash assistance to domestic organizations, including recipient EIN, cash, noncash value, description and valuation method. Schedule I Part III: assistance to individuals. Part VIII: revenue by type, including government grants and noncash contributions. Part IX: total grants paid. Schedule M: value of donated food inventory. Form 990-PF Part XV: grants paid by private foundations (recipient name only, no EIN).</td><td><span data-n="bundles"></span> monthly IRS releases from 2025 and 2026, containing returns for tax years <span data-n="years"></span>. <span data-n="filers"></span> returns matched an Atlanta-area organization as giver or recipient.</td></tr>
+      <tr><td><b>IRS Exempt Organizations Business Master File</b></td><td>The list of tax-exempt organizations in Georgia with their National Taxonomy of Exempt Entities (NTEE) code, city and ZIP code. Used to define the Atlanta-area set and to name recipients that file no detailed return.</td><td>Georgia extract, downloaded the day the map was built.</td></tr>
+      <tr><td><b>ProPublica Nonprofit Explorer</b></td><td>Names, cities and states for out-of-state givers, which the IRS return header records inconsistently.</td><td>Looked up for every outside giver.</td></tr>
+      <tr><td><b>USAspending.gov</b><br><small>U.S. Treasury</small></td><td>Federal financial assistance: prime awards to Georgia recipients under 22 food and nutrition programs, sub-awards under those programs performed in Georgia, and awards to Atlanta-area organizations found by name under any program. Each award carries an Assistance Listing number (formerly CFDA), which is how programs are grouped.</td><td>Federal fiscal years 2020 to 2026; charts show FY2022 onward. Sub-award listings are capped at 6,000 rows per program by the source.</td></tr>
+      <tr><td><b>USDA Food and Nutrition Service funding memoranda</b></td><td>The annual allocation of Emergency Food Assistance Program (TEFAP) entitlement food and administrative funds to each state, and the poverty and unemployment index that drives it.</td><td>Federal fiscal years 2023 and 2024 for Georgia.</td></tr>
+      <tr><td><b>Single Audits</b><br><small>Federal Audit Clearinghouse, and audits published by the food banks</small></td><td>The Schedule of Expenditures of Federal Awards that every organization spending $750,000 or more in federal awards must file. It states, by program, the audited value of federal money and federal food received in the year, including USDA commodities.</td><td>All Georgia audits from audit year 2019 onward; food-program rows for <span data-n="sefaOrgs"></span> organizations on this map.</td></tr>
+      <tr><td><b>Feeding America, 2024 TEFAP state policy guide</b></td><td>Georgia's seven contracted TEFAP food banks, and the share of administrative funds the state passes through to them.</td><td>Reference only.</td></tr>
+    </tbody></table>
+
+    <h2>How the organization set was defined</h2>
+    <p>"Atlanta-area food organizations" are tax-exempt organizations in the Business Master File whose ZIP code begins 300, 301, 302 or 303, and which either carry an NTEE code beginning with K (Food, Agriculture and Nutrition) or have a food-related word in their name (food, pantry, hunger, meals, kitchen, nutrition, feed, harvest, glean, grocer, farmers market). Labor unions matching "food" were removed. This yields <span data-n="atl"></span> organizations. The ZIP range is generous: it reaches Rome, Bremen and Newnan as well as the core metro. Organizations elsewhere enter the map only if they give to or receive from a member of this set.</p>
+
+    <h2>How flows are built</h2>
+    <ul>
+      <li>A flow is one row of a giver's Schedule I Part II or 990-PF Part XV. The giver decides the value. For food, that is almost always fair market value, and the two largest givers here state the method as a wholesale average per pound.</li>
+      <li>Recipients are matched by EIN when the giver reports one. Private foundations report no EIN, so their recipients are matched by normalized name and may occasionally be missed or misjoined.</li>
+      <li>When an organization filed more than one return for the same year, the later one (an amended return) is kept.</li>
+      <li>"Latest filing per organization" shows each giver's most recent tax year, so a giver's flows are never double counted across years. Selecting a single year shows only returns for that tax year.</li>
+      <li>A grant an organization reports to its own EIN is shown as "direct distribution": food the organization handed out through its own programs rather than through a partner.</li>
+      <li>In the Sankey layout, the few flows between two distributors are drawn to a recipient-side copy of the receiving distributor, labeled "as recipient", so the columns stay in order. Organizations beyond the "Named per column" setting are grouped, recipients by city.</li>
+      <li>Audited USDA food received by a food bank is drawn as a flow from a single node, "USDA TEFAP commodities (via Georgia DHS)", using the most recent audit year.</li>
+    </ul>
+
+    <h2>Federal money</h2>
+    <p>Awards are grouped by Assistance Listing number:</p>
+    <table class="sec-t about-t"><thead><tr><th>Group</th><th>Programs</th></tr></thead><tbody>
+      <tr><td>USDA commodity food</td><td>10.569 TEFAP commodities, 10.568 TEFAP administrative, 10.565 Commodity Supplemental Food Program, 10.172 Local Food Purchase Assistance, 10.185 Local Food for Schools</td></tr>
+      <tr><td>USDA community meal programs</td><td>10.558 Child and Adult Care Food Program, 10.559 Summer Food Service, 10.582 Fresh Fruit and Vegetable, 10.572 WIC Farmers Market, 10.576 Senior Farmers Market</td></tr>
+      <tr><td>HHS aging, health and community services</td><td>93.045 and 93.044 Older Americans Act Title III, 93.053 Nutrition Services Incentive, 93.569 Community Services Block Grant, 97.024 FEMA Emergency Food and Shelter, and any other 93-series program</td></tr>
+      <tr><td>USDA local food and farm programs</td><td>10.225 Community Food Projects, 10.316 and 10.331 GusNIP, and any other 10-series program not listed above</td></tr>
+      <tr><td>Context (shown separately)</td><td>10.555 National School Lunch, 10.553 School Breakfast, 10.557 WIC, 10.551 SNAP benefits. These dwarf the rest and reach households through schools, clinics and EBT cards rather than through the organizations on the map.</td></tr>
+    </tbody></table>
+    <p>An award is attributed to the federal fiscal year in which it started, using its total obligated amount. Sub-awards are attributed to the year of the sub-award date. "Traceable" federal money for an organization is the sum of awards made directly to it plus sub-awards naming it; most federal food money reaches nonprofits through the state, so this is a lower bound. Audited totals from Single Audits are the more complete figure where they exist.</p>
+
+    <h2>The TEFAP layer</h2>
+    <p>The Emergency Food Assistance Program is the largest federal food input to food banks and is absent from both of the other federal sources: the 990 folds USDA food into noncash contributions, and USAspending records almost no commodity awards. It is reconstructed from two ends.</p>
+    <ul>
+      <li><b>USDA to Georgia.</b> Entitlement food is allocated by a formula weighting poverty at 60% and unemployment at 40%; Georgia's index is about 3%. Bonus and Commodity Credit Corporation purchases, roughly twice the entitlement nationally, are not allocated by state table, so Georgia's share of those is shown as an estimate (national total times the index) and marked as such.</li>
+      <li><b>Georgia to food banks.</b> Each food bank's Single Audit states the audited value of USDA food it received in its own fiscal year. Five of the seven contracted food banks report it; Second Harvest of Coastal Georgia reports only administrative funds, and Feeding the Valley files no Single Audit. The statewide sum is therefore a floor.</li>
+      <li><b>Reconciling the two.</b> The audited sum runs several times USDA's entitlement figure. This is not an error: food banks value USDA food at the Feeding America national wholesale average per pound, while the entitlement is USDA's purchase cost and excludes bonus food. The two measure different things and are shown side by side, never added.</li>
+      <li><b>Separating food from cash in audits.</b> The Clearinghouse records program names as auditors entered them, and one auditor books commodities under the administrative program number. Rows flagged as direct awards from USDA are treated as food and rows flagged as pass-through from the state as cash; 10.569 is always food.</li>
+    </ul>
+
+    <h2>Food security measures</h2>
+    <ul>
+      <li><b>Concentration:</b> the share of all food given out by Atlanta-area organizations that passes through the single largest one, and the number of recipient agencies with only one recorded source.</li>
+      <li><b>Dependence:</b> government grants as reported on an organization's own 990 (Part VIII line 1e, all levels of government) as a share of its total revenue, shown beside traceable federal awards and audited federal totals.</li>
+      <li><b>Where a cut lands:</b> for each distributor with a funding base, exposure is that base divided by revenue (or, for the TEFAP base, audited USDA food divided by food given out), capped at one. A cut of <em>c</em> percent removes <em>c</em> &times; base from the distributor and is assumed to reduce each partner's food by <em>c</em> &times; exposure &times; that partner's current inflow. Results sum across distributors. This is arithmetic on reported figures, not a forecast.</li>
+    </ul>
+
+    <h2>Assumptions</h2>
+    <ol>
+      <li>Reported grant values are taken at face value. Noncash food is valued by the giver, usually at a wholesale average per pound, and different givers use different rates.</li>
+      <li>A giver's most recent return represents its current flows. Fiscal years differ between organizations, so "latest" mixes years ending between June 2023 and December 2025.</li>
+      <li>Schedule I itemizes only recipients of $5,000 or more in a year. Smaller partners are absent, and an agency that appears to have one source may have several small ones.</li>
+      <li>Organizations filing Form 990-EZ or 990-N report no grant detail, so they appear only as recipients even if they redistribute food.</li>
+      <li>Recipient EINs are as reported by the giver. Name matching for foundation grants uses a normalized name and a prefix test.</li>
+      <li>Federal awards are counted at obligation in their start year; spending may occur over several years.</li>
+      <li>In the cut scenario, a distributor passes a funding loss to partners in proportion to current inflow and does not substitute other sources. Exposure is uniform across a distributor's partners.</li>
+      <li>Georgia's share of bonus and CCC food is assumed proportional to its entitlement index. This is an estimate and is labeled as one.</li>
+      <li>Audit years are used as reported. A June year end and a December year end in the same "audit year" cover different months.</li>
+    </ol>
+
+    <h2>Labels and technical notes</h2>
+    <ul>
+      <li><b>Atlanta food org</b> (green): a member of the defined set. <b>Outside supplier / funder</b> (purple): any giver not in the set, including national food banks, foundations, donor-advised fund sponsors and the USDA pseudo-node. <b>Partner agency</b> (grey): a recipient not in the set and not a giver.</li>
+      <li><b>Food (noncash)</b> is the giver's reported noncash assistance, whatever its description; on this map it is food in nearly every case. <b>Cash</b> is cash grants.</li>
+      <li><b>FY</b> on a flow is the giver's tax year as filed. <b>FY</b> on a federal award is the federal fiscal year (October to September). <b>Audit year</b> is the year of the organization's fiscal year end.</li>
+      <li><b>Federal:</b> nodes in the Sankey aggregate traceable awards by program group; they are not organizations.</li>
+      <li><b>Other outside givers</b>, <b>Other Atlanta distributors</b> and <b>Other recipients in [city]</b> are groups created by the "Named per column" setting. Hover for the count.</li>
+      <li><b>(direct distribution)</b> marks food an organization reported granting to itself. <b>(as recipient)</b> marks a distributor shown on the recipient side of the Sankey.</li>
+      <li><b>In view</b> figures respect the current filters; the header totals do too.</li>
+      <li>Dollar amounts are rounded for display (K thousands, M millions, B billions). Tables in the side panel show exact reported values on hover.</li>
+      <li>EINs are shown as reported. Organizations named only by a foundation, with no EIN, are marked "EIN not reported".</li>
+    </ul>
+
+    <h2>Known gaps</h2>
+    <ul>
+      <li>Donors to an organization are not public. Schedule B is redacted in every public 990, so inflows are known only where the giver is itself a filer that itemizes grants.</li>
+      <li>Individual and direct corporate gifts never appear.</li>
+      <li>The Feeding America network's flows to other regions are outside the map; only the Atlanta-bound legs are included.</li>
+      <li>Two of Georgia's seven TEFAP food banks report no audited food value.</li>
+      <li>Sub-award reporting to USAspending is incomplete and capped per program.</li>
+    </ul>
+
+    <h2>Version</h2>
+    <p>Built <span data-n="generated"></span> from the IRS releases, USAspending queries and audits available on that date. Maintained by the Ka Moamoa lab at Georgia Tech. The deployed page and its data are at <a href="https://github.com/ka-moamoa/atlanta-food-flows">github.com/ka-moamoa/atlanta-food-flows</a>. Rerunning against new monthly IRS releases extends the map as filings land.</p>
+  </section>
 
   <section class="view sec" id="view-sec" role="tabpanel" aria-labelledby="tab-sec" hidden></section>
 
@@ -444,7 +553,7 @@ canvas.addEventListener('mousemove', ev => {
     canvas.style.cursor = h && h.org ? 'pointer' : '';
     if (h){ const isLink = !!h.source;
       tip.innerHTML = isLink ? `<b>${esc(h.source.name)} &rarr; ${esc(h.target.name)}</b>${h.n?`<span class="k">Food</span> <span class="n">${fmt(h.n)}</span>`:''}${h.n&&h.c?' &nbsp; ':''}${h.c?`<span class="k">Cash</span> <span class="n">${fmt(h.c)}</span>`:''}`
-        : `<b>${esc(h.name)}</b><span class="k">${h.kind==='fed'?'Federal awards, FY2022 onward (USAspending)':h.kind.startsWith('grp')?'Grouped; raise "named per column" to split':h.org?KIND[nodesById.get(h.org).kind]:''}</span><br><span class="k">Through</span> <span class="n">${fmt(h.value)}</span>`;
+        : `<b>${esc(h.name)}</b><span class="k">${h.kind==='fed'?'Federal awards, FY2022 onward (USAspending)':h.kind.startsWith('grp')?'Several organizations grouped. Increase "Named per column" to show them individually.':h.org?KIND[nodesById.get(h.org).kind]:''}</span><br><span class="k">Through</span> <span class="n">${fmt(h.value)}</span>`;
       tip.style.display='block'; tip.style.left = Math.min(W-290, ev.clientX-r.left+14)+'px'; tip.style.top = (ev.clientY-r.top+14)+'px';
     } else tip.style.display='none';
     return;
@@ -498,7 +607,7 @@ function renderPanel(){
       <div class="meta"><span class="chip ${n.kind}">${KIND[n.kind]}</span>${n.city?`<span>${esc(n.city)}${n.state?', '+n.state:''}</span>`:''}${n.ntee?`<span>NTEE ${esc(n.ntee)}</span>`:''}<span>EIN ${n.id.startsWith('name:')?'not reported':n.id.replace(/^(\d{2})(\d{7})$/,'$1-$2')}</span></div>
       ${n.mission?`<p class="mission">${esc(n.mission)}</p>`:''}
       ${gn?`<div class="kv" style="margin-top:12px"><span class="k">Receives in view</span><span class="v">${fmt(G.inTot.get(n.id)||0)}</span><span class="k">Gives out in view</span><span class="v">${fmt(G.outTot.get(n.id)||0)}</span></div>`:''}
-      ${kv.length?`<h3>From its own Form 990 &middot; FY${ly}${n.form&&n.form!=='990'?' \u00b7 '+n.form:''}</h3><div class="kv">${kv.map(r=>`<span class="k">${r[0]}</span><span class="v ${r[2]||''}">${fmt(r[1])}</span>`).join('')}</div>`:`<p class="empty" style="margin-top:12px">${n.kind==='partner'?'Appears only as a recipient. It either files a 990-EZ/990-N with no grant detail, or is not in the scanned releases.':'No financial detail captured for this filer.'}</p>`}
+      ${kv.length?`<h3>From its own Form 990 &middot; FY${ly}${n.form&&n.form!=='990'?' \u00b7 '+n.form:''}</h3><div class="kv">${kv.map(r=>`<span class="k">${r[0]}</span><span class="v ${r[2]||''}">${fmt(r[1])}</span>`).join('')}</div>`:`<p class="empty" style="margin-top:12px">${n.kind==='partner'?'Appears only as a recipient. It either files a 990-EZ or 990-N, which carry no grant detail, or its return is not among the IRS releases covered here.':'No financial detail captured for this filer.'}</p>`}
       ${n.tefap ? (() => { const fy = Object.keys(n.tefap).sort().pop(); const t = n.tefap[fy]; const rows = [['USDA TEFAP food received', t.tefap_food, 'food'], ['USDA CSFP food (senior boxes)', t.csfp_food, 'food'], ['TEFAP administrative funds', t.tefap_admin], ['CCC eligible-recipient funds', t.ccc_era_funds], ['TANF nutrition assistance (GNAP)', t.tanf_gnap], ['State & Local Fiscal Recovery (one-time)', t.slfrf_arpa], ['Total federal awards expended', t.total_federal_expended]].filter(r => r[1]); return rows.length ? `<h3>From its Single Audit &middot; FY${fy} (year ending June)</h3><div class="kv">${rows.map(r => `<span class="k">${r[0]}</span><span class="v ${r[2]||''}">${fmt(r[1])}</span>`).join('')}</div><p class="mission">Passed through Georgia DHS. Food valued at the Feeding America wholesale average per pound. This is the layer the 990 folds into noncash contributions and USAspending omits entirely.</p>` : ''; })() : ''}
       ${n.sefa ? (() => { const y = Object.keys(n.sefa).sort().pop(); const p = n.sefa[y]; const rows = Object.entries(p).filter(([k]) => !k.startsWith('_')).sort((a,b)=>b[1]-a[1]).slice(0,10); const nm = k => (FED && FED.programs[k] ? FED.programs[k].name : ({'10.561':'SNAP outreach / admin','10.187':'CCC eligible-recipient funds','93.558':'TANF','21.027':'State & Local Fiscal Recovery','21.019':'Coronavirus Relief Fund','93.071':'Medicare enrollment assistance','10.568':'TEFAP (admin, or commodities where so booked)','10.569':'TEFAP food commodities','10.565':'CSFP'}[k]) || k); return `<h3>Federal programs on its Single Audit &middot; audit year ${y}</h3><div class="kv">${rows.map(([k,v]) => `<span class="k">${esc(nm(k))} <small style="color:var(--ink-3)">${k}</small></span><span class="v">${fmt(v)}</span>`).join('')}<span class="k" style="font-weight:600">Total federal expenditures</span><span class="v" style="font-weight:600">${fmt(p._total)}</span></div>`; })() : ''}
       ${indiv}
@@ -527,9 +636,13 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => need
 new MutationObserver(() => needDraw = true).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
 
 // ---------- tabs ----------
-const tabs = {map: [$('tab-map'), $('view-map')], sec: [$('tab-sec'), $('view-sec')]};
-function showTab(t){ for (const k in tabs){ tabs[k][0].setAttribute('aria-selected', String(k===t)); tabs[k][1].hidden = k!==t; } state.tab = t; if (t==='sec') renderSecurity(); else { resize(); needDraw = true; } }
-$('tab-map').addEventListener('click', () => showTab('map')); $('tab-sec').addEventListener('click', () => showTab('sec'));
+const tabs = {map: [$('tab-map'), $('view-map')], sec: [$('tab-sec'), $('view-sec')], about: [$('tab-about'), $('view-about')]};
+function showTab(t){ for (const k in tabs){ tabs[k][0].setAttribute('aria-selected', String(k===t)); tabs[k][1].hidden = k!==t; } state.tab = t; if (t==='sec') renderSecurity(); else if (t==='map') { resize(); needDraw = true; } if (t!=='map') window.scrollTo({top:0}); }
+$('tab-map').addEventListener('click', () => showTab('map')); $('tab-sec').addEventListener('click', () => showTab('sec')); $('tab-about').addEventListener('click', () => showTab('about'));
+document.addEventListener('click', ev => { const a = ev.target.closest('a[data-goto]'); if (a){ ev.preventDefault(); showTab(a.dataset.goto); } });
+(function fillAbout(){ const m = DATA.meta; const sefaOrgs = DATA.nodes.filter(n => n.sefa).length;
+  const vals = {bundles: m.bundles, years: m.years[0] + ' to ' + m.years[m.years.length-1], filers: m.filers.toLocaleString(), atl: m.atl_set, generated: m.generated, sefaOrgs};
+  document.querySelectorAll('#view-about [data-n]').forEach(el => { const v = vals[el.dataset.n]; if (v !== undefined) el.textContent = v; }); })();
 
 // ---------- food security tab ----------
 const FED = DATA.fed; const PG = {commodity:'USDA commodity food', meals:'USDA community meal programs', senior:'HHS aging, health & community services', local:'USDA local food & farm programs', other:'Other federal', context:'School meals, WIC, SNAP'};
@@ -589,7 +702,7 @@ function renderSecurity(){
     const latestFull = fys.slice().reverse().find(y => bankArr.filter(b=>b.fy[y]).length >= 5) || fys[fys.length-1];
     const shareRows = bankArr.filter(b => b.fy[latestFull]).map(b => ({id: nodesById.has(b.ein)?b.ein:undefined, name: shortName(b.name), segs:[{g:'commodity', v:b.fy[latestFull]}], total:b.fy[latestFull], right:(100*b.fy[latestFull]/sumFy[latestFull]).toFixed(0)+'%', rs: fmt(b.fy[latestFull])}));
     const latestRows = bankArr.filter(b => b.fy[latestFull]).map(b => { const f = y => (TF.orgs.find(r => r.ein===b.ein && r.fy===latestFull && r.m===y)||{}).a; return `<tr><td>${esc(shortName(b.name))}</td><td class="n">${fmt(b.fy[latestFull])}</td><td class="n">${f('csfp_food')?fmt(f('csfp_food')):''}</td><td class="n">${f('tefap_admin')?fmt(f('tefap_admin')):''}</td><td class="n">${f('ccc_era_funds')?fmt(f('ccc_era_funds')):''}</td><td class="n">${f('total_federal_expended')?fmt(f('total_federal_expended')):''}</td><td class="n">${(100*b.fy[latestFull]/sumFy[latestFull]).toFixed(0)}%</td></tr>`; }).join('');
-    tefapHTML = `<div class="block"><h2>USDA commodity food: the TEFAP layer</h2><p class="sub">The Emergency Food Assistance Program is the largest federal food input to the food banks, and it is invisible in both the 990 (booked as noncash contributions) and USAspending (commodities are not recorded as awards). Two public sources fill it in: USDA's annual state allocation worksheets, and each food bank's Single Audit, whose Schedule of Expenditures of Federal Awards states the audited value of USDA food received. State rows are hand-entered in <code>tefap_georgia.csv</code>; food-bank rows come from the Federal Audit Clearinghouse (<code>fac_pull.py</code>).</p>
+    tefapHTML = `<div class="block"><h2>USDA commodity food: the TEFAP layer</h2><p class="sub">The Emergency Food Assistance Program is the largest federal food input to the food banks, and it is invisible in both the 990 (booked as noncash contributions) and USAspending (commodities are not recorded as awards). Two public sources fill it in: USDA's annual state allocation worksheets, and each food bank's Single Audit, whose Schedule of Expenditures of Federal Awards states the audited value of USDA food received. The audits are collected from the Federal Audit Clearinghouse. See <a href="#" data-goto="about">About the data</a> for how the two are reconciled.</p>
       <div class="stack">
       <div><h3 style="margin:0 0 8px;font:600 11px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)">Audited TEFAP food received by Georgia's food banks, by audit year</h3><div style="overflow-x:auto"><table class="sec-t"><thead><tr><th>Food bank</th>${fys.map(y=>`<th class="n">${y}</th>`).join('')}</tr></thead><tbody>${matrixRows}</tbody></table></div><p class="note" style="margin-top:10px">Audit years, not federal fiscal years: each bank's own year end is shown. Food is valued by each bank at the Feeding America wholesale average per pound, so the audited sum runs several times USDA's entitlement figure, which is purchase cost and excludes bonus and CCC foods. Second Harvest of Coastal Georgia reports only TEFAP administrative funds on its schedule, and Feeding the Valley (Columbus) files no Single Audit in the Clearinghouse, so the statewide sum is a floor.</p></div>
       <div><h3 style="margin:0 0 8px;font:600 11px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)">How Georgia's TEFAP food splits among its food banks &middot; audit year ${latestFull}</h3>${bars(shareRows)}</div>
@@ -618,7 +731,7 @@ function renderSecurity(){
       <div class="tile"><div class="l">Reaching Atlanta food orgs</div><div class="v">${FED?fmt(fedMatched):'&ndash;'}</div><div class="s">Direct awards plus reported sub-awards matched to organizations in this map</div></div>
     </div>
     <div class="block"><h2>Who moves the food</h2><p class="sub">Food given to other organizations, latest filing per org. One hub carries the region; everything below it depends on that hub staying whole.</p>${bars(hubRows)}</div>
-    <div class="block"><h2>Federal money entering Georgia's food system</h2><p class="sub">Prime awards to Georgia recipients by federal fiscal year of award start. Almost all of it lands at state agencies first (Department of Human Services, Department of Early Care and Learning, Department of Education) and is passed down by formula. Controls: <select id="sec-fy" style="margin-left:4px"><option value="all">FY2022 onward</option>${fys.filter(y=>y>=2020).map(y=>`<option value="${y}"${sec.fy==String(y)?' selected':''}>FY${y}</option>`).join('')}</select></p>${legend}${FED?`<div class="two"><div>${bars(fyRows)}</div><div>${bars(progRows)}</div></div><p class="note" style="margin-top:14px">For scale, the entitlement programs left out of the bars: ${Object.entries(ctxBy).sort((a,b)=>b[1]-a[1]).map(([p,v])=>`${esc((FED.programs[p]||{}).name||p)} ${fmt(v)}`).join(' &middot; ')}. Those reach households through schools, clinics and EBT cards rather than through the organizations on this map, but a cut to them raises demand at every pantry below.</p>`:'<p class="empty">No USAspending data in this build.</p>'}</div>
+    <div class="block"><h2>Federal money entering Georgia's food system</h2><p class="sub">Prime awards to Georgia recipients by federal fiscal year of award start. Almost all of it lands at state agencies first (Department of Human Services, Department of Early Care and Learning, Department of Education) and is passed down by formula. Controls: <select id="sec-fy" style="margin-left:4px"><option value="all">FY2022 onward</option>${fys.filter(y=>y>=2020).map(y=>`<option value="${y}"${sec.fy==String(y)?' selected':''}>FY${y}</option>`).join('')}</select></p>${legend}${FED?`<div class="two"><div>${bars(fyRows)}</div><div>${bars(progRows)}</div></div><p class="note" style="margin-top:14px">For scale, the entitlement programs left out of the bars: ${Object.entries(ctxBy).sort((a,b)=>b[1]-a[1]).map(([p,v])=>`${esc((FED.programs[p]||{}).name||p)} ${fmt(v)}`).join(' &middot; ')}. Those reach households through schools, clinics and EBT cards rather than through the organizations on this map, but a cut to them raises demand at every pantry below.</p>`:'<p class="empty">Federal award data is not available.</p>'}</div>
     ${tefapHTML}
     <div class="block"><h2>Who depends on public money</h2><p class="sub">Government grants as each organization reported them on its own Form 990 (all levels of government), as a share of total revenue. The bar shows federal dollars USAspending can trace to the organization directly or as a sub-award, by program group. Sorted by dependence, so small meal programs rise above the food bank.</p>${legend}
       <div style="overflow-x:auto"><table class="sec-t"><thead><tr><th>Organization</th><th class="n">FY</th><th class="n">Gov grants (990)</th><th class="n">Share of revenue</th><th style="min-width:180px">Traceable federal awards</th><th class="n">Total</th><th class="n">Audited federal (Single Audit)</th><th class="n">Food given out</th></tr></thead><tbody>
@@ -641,7 +754,7 @@ function renderSecurity(){
 if (state.tab === 'sec') showTab('sec');
 setLayout(state.layout);
 
-$('source').innerHTML = `Source: IRS Tax Exempt Organization Search e-file XML, ${DATA.meta.bundles} monthly releases (2025&ndash;2026), ${DATA.meta.filers.toLocaleString()} returns matched. Organization set: ${DATA.meta.atl_set} metro-Atlanta filers with NTEE code K or a food-related name in the IRS Business Master File. Noncash values are as reported by the giver, typically fair market value of food. Amounts under $5,000 per recipient are not itemized on Schedule I and are absent. Built ${DATA.meta.generated}.`;
+$('source').innerHTML = `Sources: IRS Form 990 e-file returns (${DATA.meta.bundles} releases, tax years ${DATA.meta.years[0]}&ndash;${DATA.meta.years[DATA.meta.years.length-1]}), IRS Business Master File, USAspending.gov, USDA TEFAP allocations, and Single Audits. Values are as reported by the giver. Grants under $5,000 per recipient are not itemized and are absent. Built ${DATA.meta.generated}. <a href="#" data-goto="about" class="help">About the data</a>`;
 buildGraph();
 })();
 </script>
