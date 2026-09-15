@@ -130,6 +130,30 @@ table.all td.n{font-family:var(--mono);font-variant-numeric:tabular-nums;text-al
 .view[hidden]{display:none}
 #view-map{display:flex;flex-direction:column;gap:12px;flex:1}
 
+/* takeaways tab */
+.take{max-width:1100px;display:flex;flex-direction:column;gap:20px}
+.take .lede{color:var(--ink-2);max-width:78ch;margin:0}
+.take .q{font:600 11px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--food);margin:0 0 4px}
+.take .block h2{margin:0 0 6px}
+.take .block p{max-width:78ch}
+.finding{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,420px);gap:18px 26px;align-items:start}
+.finding .txt p{margin:0 0 8px;font-size:14px;line-height:1.55}
+.finding .txt p:first-child{font-size:15.5px}
+.finding .txt .n{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:500}
+.chart svg{max-width:100%;height:auto;display:block}
+.chart .cap{font-size:12px;color:var(--ink-3);margin:6px 0 0}
+.proof{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.proof button{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:6px 10px;cursor:pointer;font-size:12.5px;color:var(--ink)}
+.proof button:hover{border-color:var(--food);color:var(--food)}
+.proof button::before{content:"\2192\00a0";color:var(--food)}
+.hyp{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px 14px;font-size:13.5px;align-items:baseline}
+.hyp .id{font:600 12px var(--mono);color:var(--ink-2)}
+.hyp .st{font:600 10.5px/1 var(--display);letter-spacing:.1em;text-transform:uppercase;padding:4px 7px;border-radius:3px;white-space:nowrap}
+.st.yes{background:var(--food-soft);color:var(--food)} .st.part{background:var(--cash-soft);color:var(--cash)} .st.no{background:var(--bg-3);color:var(--ink-2)}
+.refs{font-size:13px;line-height:1.5} .refs li{margin:6px 0} .refs .why{color:var(--ink-2)}
+.hlchip{position:absolute;left:12px;top:12px;background:var(--bg);border:1px solid var(--food);border-radius:4px;padding:6px 10px;font-size:12.5px;display:flex;gap:10px;align-items:center}
+.hlchip button{background:transparent;border:0;color:var(--food);cursor:pointer;font:inherit;text-decoration:underline}
+@media (max-width:900px){ .finding{grid-template-columns:1fr} }
 /* about tab */
 .about{max-width:80ch;display:block}
 .about h2{margin:26px 0 8px;font:700 22px/1.1 var(--display);text-wrap:balance}
@@ -200,11 +224,14 @@ table.sec-t td.n,table.sec-t th.n{font-family:var(--mono);font-variant-numeric:t
   <nav class="tabs" role="tablist" aria-label="Views">
     <button type="button" role="tab" id="tab-map" aria-selected="true" aria-controls="view-map">Flow map</button>
     <button type="button" role="tab" id="tab-sec" aria-selected="false" aria-controls="view-sec">Food security</button>
+    <button type="button" role="tab" id="tab-take" aria-selected="false" aria-controls="view-take">Takeaways</button>
     <button type="button" role="tab" id="tab-about" aria-selected="false" aria-controls="view-about">About the data</button>
   </nav>
 
+  <section class="view take" id="view-take" role="tabpanel" aria-labelledby="tab-take" hidden></section>
+
   <section class="view about" id="view-about" role="tabpanel" aria-labelledby="tab-about" hidden>
-    <p class="lede">This page maps where food and the money behind it move among Atlanta-area food nonprofits. Everything on it is reconstructed from public filings. This note explains what each source contributes, how the pieces were joined, what was assumed, and where the picture is known to be incomplete. It is written for researchers and practitioners who want to use or check the figures.</p>
+    <p class="lede">This page maps where food and the money behind it move among Atlanta-area food nonprofits. Everything on it is reconstructed from public filings. This note explains what each source contributes, how the pieces were joined, what was assumed, and where the picture is known to be incomplete. It is written for researchers and practitioners who want to use or check the figures. The <a href="#" data-goto="take">Takeaways</a> tab states what the recorded network shows under these definitions, with the metrics, the literature they draw on, and the hypotheses still to test.</p>
 
     <h2>What the map shows</h2>
     <p>Each line in the flow map is a grant that one organization reported giving to another: the giver's name, the recipient's name and usually its employer identification number, the cash amount, and the value of any noncash assistance such as food. Node size and ribbon width scale with dollars. Green is food (noncash), amber is cash. The map covers organizations in the Atlanta area, the outside organizations that supply or fund them, and the local agencies that receive from them. It is a map of <em>reported</em> transfers between organizations, not a census of all food moving through the region.</p>
@@ -375,6 +402,7 @@ table.sec-t td.n,table.sec-t th.n{font-family:var(--mono);font-variant-numeric:t
       <div class="tip" id="tip"></div>
       <div class="hint">Drag to pan &middot; scroll to zoom &middot; click an organization</div>
       <div class="maplegend" id="maplegend" hidden></div>
+      <div class="hlchip" id="hlchip" hidden></div>
       <div class="mapnote" id="mapnote" hidden></div>
     </div>
     <aside class="panel" id="panel"></aside>
@@ -398,7 +426,7 @@ const KIND = {atl:'Atlanta food org', parent:'Outside supplier / funder', partne
 const css = k => getComputedStyle(document.documentElement).getPropertyValue(k).trim();
 
 // ---------- state ----------
-const state = { year:'latest', flow:'all', min:Math.pow(10,3.7), selected:null, hover:null, q:'', layout:'network', detail:12, mapbase:'lila', maphubs:false, mapflows:false };
+const state = { year:'latest', flow:'all', min:Math.pow(10,3.7), selected:null, hover:null, q:'', layout:'network', detail:12, mapbase:'lila', maphubs:false, mapflows:false, hl:null };
 try { const h = window.claude && window.claude.hot && window.claude.hot.data; if (h && h.state) Object.assign(state, h.state); } catch(e){}
 if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => ({state}));
 
@@ -477,7 +505,7 @@ function drawMap(C){
   const order = vis.slice().sort((x,y) => mapValue(y) - mapValue(x));
   for (const n of order){
     const p = MAP.pts.get(n.id); const r = mapR(mapValue(n))/k; const kind = n.ref.kind; const col = kind==='atl' ? C.food : kind==='parent' ? C.parent : C.partner;
-    const active = !nb || nb.has(n.id); ctx.globalAlpha = active ? 1 : 0.2;
+    const active = (!nb || nb.has(n.id)) && !(state.hl && !nb && !state.hl.ids.has(n.id)); ctx.globalAlpha = active ? 1 : 0.15;
     ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, Math.PI*2);
     if (n.ref.geo.q === 'street'){ ctx.fillStyle = col; ctx.fill(); ctx.strokeStyle = C.bg; ctx.lineWidth = 1/k; ctx.stroke(); }
     else { ctx.fillStyle = C.bg; ctx.globalAlpha = active ? 0.75 : 0.15; ctx.fill(); ctx.globalAlpha = active ? 1 : 0.2; ctx.strokeStyle = col; ctx.lineWidth = 1.8/k; ctx.stroke(); }
@@ -669,6 +697,7 @@ function draw(){
     const v = val(l.e); const food = state.flow === 'cash' ? false : state.flow === 'food' ? true : l.e.n >= l.e.c;
     const active = !nb || (l.source.id===focus || l.target.id===focus);
     ctx.globalAlpha = nb ? (active ? 0.85 : 0.06) : 0.5;
+    if (state.hl && !nb && !(state.hl.ids.has(l.source.id) || state.hl.ids.has(l.target.id))) ctx.globalAlpha = 0.04;
     ctx.strokeStyle = food ? C.food : C.cash; ctx.lineWidth = wScale(v); ctx.lineCap = 'round';
     const sx=l.source.x, sy=l.source.y, tx=l.target.x, ty=l.target.y, dx=tx-sx, dy=ty-sy, len=Math.hypot(dx,dy)||1;
     const mx=(sx+tx)/2 - dy*0.12, my=(sy+ty)/2 + dx*0.12;
@@ -680,7 +709,7 @@ function draw(){
   // nodes
   for (const n of G.nodes){
     const k = n.ref.kind; const active = !nb || nb.has(n.id);
-    ctx.globalAlpha = active ? 1 : 0.18;
+    ctx.globalAlpha = active ? (state.hl && !nb ? (state.hl.ids.has(n.id) ? 1 : 0.1) : 1) : 0.18;
     ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI*2);
     ctx.fillStyle = k==='atl' ? C.food : k==='parent' ? C.parent : C.partner; ctx.fill();
     ctx.lineWidth = 1.2/transform.k; ctx.strokeStyle = k==='partner' ? C.ink3 : C.bg; ctx.stroke();
@@ -690,7 +719,7 @@ function draw(){
   const fs = Math.max(10, 12/transform.k); ctx.font = `600 ${fs}px "Barlow Condensed","Arial Narrow",sans-serif`; ctx.textAlign='center'; ctx.textBaseline='top';
   for (const n of G.nodes){
     const show = n.id===state.selected || n.id===state.hover || (nb && nb.has(n.id) && n.r>2) || (!nb && n.r*transform.k >= 9);
-    if (!show) continue;
+    if (!show || (state.hl && !nb && !state.hl.ids.has(n.id) && n.id!==state.hover)) continue;
     const t = n.ref.name.length > 30 ? n.ref.name.slice(0,29)+'\u2026' : n.ref.name;
     ctx.globalAlpha = 1; ctx.lineWidth = 3/transform.k; ctx.strokeStyle = C.bg; ctx.strokeText(t, n.x, n.y + n.r + 3/transform.k);
     ctx.fillStyle = C.ink; ctx.fillText(t, n.x, n.y + n.r + 3/transform.k);
@@ -809,10 +838,182 @@ $('q').addEventListener('change', () => { const q = $('q').value.trim().toLowerC
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => needDraw = true);
 new MutationObserver(() => needDraw = true).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
 
+// ---------- takeaways: metrics computed from the latest filing per organization, all recorded flows ----------
+let TK = null;
+function computeTakeaways(){
+  const Lx = DATA.edges.filter(e => e.y === latestYearBySrc.get(e.s) && e.s !== e.t && (e.c + e.n) > 0);
+  const kindOf = id => (nodesById.get(id) || {}).kind; const isAtl = id => kindOf(id) === 'atl'; const isFed = id => id.startsWith('fed:');
+  const out = new Map(), outFood = new Map();
+  for (const e of Lx){ if (!isAtl(e.s)) continue; out.set(e.s, (out.get(e.s)||0) + e.c + e.n); if (e.n > 0) outFood.set(e.s, (outFood.get(e.s)||0) + e.n); }
+  const conc = m => { const v = [...m.values()].sort((a,b)=>b-a); const t = d3.sum(v) || 1; const sh = k => d3.sum(v.slice(0,k))/t; const sv = v.slice().sort(d3.ascending); const n = sv.length || 1;
+    const g = n > 1 ? (2*d3.sum(sv.map((x,i)=>(i+1)*x)))/(n*d3.sum(sv)) - (n+1)/n : 0; return {n:v.length, t, top1:sh(1), top3:sh(3), top5:sh(5), hhi:d3.sum(v, x=>(x/t)**2), gini:g, v}; };
+  const C = conc(out), CF = conc(outFood);
+  const inflow = new Map();
+  for (const e of Lx){ if (isFed(e.s)) continue; if (!inflow.has(e.t)) inflow.set(e.t, new Map()); const m = inflow.get(e.t); m.set(e.s, (m.get(e.s)||0) + e.c + e.n); }
+  const recips = [...inflow.entries()].filter(([t,m]) => kindOf(t) !== 'parent' && [...m.keys()].some(isAtl));
+  const div = recips.map(([t,m]) => { const T = d3.sum([...m.values()]); const p = [...m.values()].map(v=>v/T); const H = -d3.sum(p, x => x>0 ? x*Math.log(x) : 0); return {t, k:m.size, neff:Math.exp(H), dom:d3.max(p), tot:T, srcs:m}; });
+  const downs = new Map(), ups = new Map();
+  for (const e of Lx) if (out.has(e.s)){ if (!downs.has(e.s)) downs.set(e.s, new Set()); downs.get(e.s).add(e.t); }
+  for (const h of out.keys()) ups.set(h, new Set((inflow.get(h) || new Map()).keys()));
+  const direct = new Set(Lx.map(e => e.s + '|' + e.t)); const pairs = new Map();
+  for (const h of out.keys()) for (const s of ups.get(h)) for (const r of (downs.get(h) || [])){ const key = s + '|' + r; if (!pairs.has(key)) pairs.set(key, []); pairs.get(key).push(h); }
+  const bet = new Map(); for (const [key, hs] of pairs){ if (direct.has(key)) continue; for (const h of hs) bet.set(h, (bet.get(h)||0) + 1/hs.length); }
+  const sole = new Map(), soleVal = new Map();
+  for (const d of div) if (d.k === 1){ const src = [...d.srcs.keys()][0]; sole.set(src, (sole.get(src)||0) + 1); soleVal.set(src, (soleVal.get(src)||0) + d.tot); }
+  const hubs = [...out.entries()].sort((a,b)=>b[1]-a[1]).map(([h,v]) => ({id:h, name:nodesById.get(h).name, out:v, food:outFood.get(h)||0, recips:(downs.get(h)||new Set()).size, ups:ups.get(h).size, bet:bet.get(h)||0, sole:sole.get(h)||0, soleVal:soleVal.get(h)||0}));
+  const recipIn = new Map();
+  for (const e of Lx) if (out.has(e.s)){ if (!recipIn.has(e.t)) recipIn.set(e.t, new Map()); const m = recipIn.get(e.t); m.set(e.s, (m.get(e.s)||0) + e.c + e.n); }
+  const R = d3.sum([...recipIn.values()], m => d3.sum([...m.values()])) || 1;
+  const loss = rem => { let lost = 0, dead = 0; for (const [r,m] of recipIn){ let l = 0, t = 0; for (const [src,v] of m){ t += v; if (rem.has(src)) l += v; } lost += l; if (l > 0 && l >= 0.999*t) dead++; } return {share:lost/R, dead}; };
+  const dist = [...out.keys()]; const order = hubs.map(h => h.id); const K = Math.min(8, dist.length); const shuffle = d3.shuffler(d3.randomLcg(42)); const curve = [];
+  for (let k = 1; k <= K; k++){ const tg = loss(new Set(order.slice(0,k))); const draws = []; for (let i = 0; i < 300; i++){ draws.push(loss(new Set(shuffle(dist.slice()).slice(0,k))).share); } draws.sort(d3.ascending);
+    curve.push({k, targeted:tg.share, dead:tg.dead, rmean:d3.mean(draws), r05:d3.quantile(draws, 0.05), r95:d3.quantile(draws, 0.95), rmed:d3.median(draws)}); }
+  const top = order[0];
+  const grp = {single:[], multi:[]}; for (const d of div){ const m = recipIn.get(d.t); if (!m) continue; const t = d3.sum([...m.values()]); (d.neff < 1.5 ? grp.single : grp.multi).push((m.get(top)||0)/t); }
+  const SE = new Set(['FL','AL','TN','SC','NC','MS','LA','KY','AR','VA']); const org = new Map(), orgF = new Map();
+  for (const e of Lx){ if (!isAtl(e.t)) continue; const sn = nodesById.get(e.s); const g = isFed(e.s) ? 'USDA TEFAP (audited)' : sn.kind === 'atl' ? 'Atlanta metro' : (sn.state||'') === 'GA' ? 'Georgia outside metro' : SE.has(sn.state) ? 'Southeast' : 'Rest of US'; org.set(g, (org.get(g)||0) + e.c + e.n); if (e.n > 0) orgF.set(g, (orgF.get(g)||0) + e.n); }
+  const byYear = {}; for (const e of DATA.edges){ if (!isAtl(e.s) || e.s === e.t || (e.c+e.n) <= 0) continue; byYear[e.y] = byYear[e.y] || new Map(); byYear[e.y].set(e.s, (byYear[e.y].get(e.s)||0) + e.c + e.n); }
+  const stab = Object.keys(byYear).sort().map(y => { const m = byYear[y]; const t = d3.sum([...m.values()]); const [h,v] = [...m.entries()].sort((a,b)=>b[1]-a[1])[0]; return {y:+y, n:m.size, t, top:nodesById.get(h).name, share:v/t}; });
+  let persist = null; if (top){ const ys = Object.keys(byYear).filter(y => byYear[y].has(top)).map(Number).sort(); if (ys.length >= 2){ const [y1,y2] = ys.slice(-2); const a = new Set(DATA.edges.filter(e=>e.s===top&&e.y===y1).map(e=>e.t)), b = new Set(DATA.edges.filter(e=>e.s===top&&e.y===y2).map(e=>e.t)); const both = [...a].filter(x=>b.has(x)).length; persist = {y1,y2,a:a.size,b:b.size,both,j:both/(a.size+b.size-both)}; } }
+  const topNode = top ? nodesById.get(top) : null; let tef = null; if (topNode && topNode.tefap){ const y = Object.keys(topNode.tefap).sort().pop(); tef = {y, food:topNode.tefap[y].tefap_food||0}; }
+  const belowLine = d3.sum(Lx.filter(e => (nodesById.get(e.t).name||'').toLowerCase().includes('below')), e => e.c+e.n);
+  const selfLoop = d3.sum(DATA.edges.filter(e => e.y === latestYearBySrc.get(e.s) && e.s === e.t), e => e.c+e.n);
+  const nameOnly = d3.sum(Lx.filter(e => e.t.startsWith('name:')), e => e.c+e.n);
+  return {Lx, C, CF, div, hubs, curve, grp, org, orgF, stab, persist, top, topNode, topFoodOut:outFood.get(top)||0, tef, recipIn, belowLine, selfLoop, nameOnly};
+}
+const pct = (x, d=0) => (100*x).toFixed(d) + '%';
+function svgBars(rows, opts){ // rows: [{label, v, color}] horizontal bars, value 0..1
+  const w = 420, bh = 22, gap = 8, lw = 150, h = rows.length*(bh+gap); const max = opts && opts.max || 1;
+  return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(opts&&opts.aria||'bar chart')}">${rows.map((r,i) => { const y = i*(bh+gap); const bw = Math.max(1,(w-lw-56)*r.v/max); return `<text x="${lw-8}" y="${y+bh/2+4}" text-anchor="end" font-size="12" fill="var(--ink-2)">${esc(r.label)}</text><rect x="${lw}" y="${y}" width="${bw}" height="${bh}" rx="3" fill="${r.color||'var(--food)'}"></rect><text x="${lw+bw+6}" y="${y+bh/2+4}" font-size="12" font-family="var(--mono)" fill="var(--ink)">${r.txt||pct(r.v)}</text>`; }).join('')}</svg>`;
+}
+function svgCurve(curve){
+  const w = 460, h = 230, m = {l:44, r:16, t:14, b:34}; const xs = d3.scaleLinear().domain([1, curve[curve.length-1].k]).range([m.l, w-m.r]); const ys = d3.scaleLinear().domain([0,1]).range([h-m.b, m.t]);
+  const line = key => curve.map((c,i) => (i?'L':'M') + xs(c.k).toFixed(1) + ',' + ys(c[key]).toFixed(1)).join(' ');
+  const band = curve.map(c => xs(c.k).toFixed(1)+','+ys(c.r95).toFixed(1)).join(' ') + ' ' + curve.slice().reverse().map(c => xs(c.k).toFixed(1)+','+ys(c.r05).toFixed(1)).join(' ');
+  const last = curve[curve.length-1], first = curve[0];
+  return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Share of recipient inflow lost when distributors are removed, targeted versus random">
+    ${[0,.25,.5,.75,1].map(v => `<line x1="${m.l}" x2="${w-m.r}" y1="${ys(v)}" y2="${ys(v)}" stroke="var(--line)" stroke-width="1"></line><text x="${m.l-6}" y="${ys(v)+4}" text-anchor="end" font-size="11" fill="var(--ink-3)" font-family="var(--mono)">${pct(v)}</text>`).join('')}
+    ${curve.map(c => `<text x="${xs(c.k)}" y="${h-m.b+16}" text-anchor="middle" font-size="11" fill="var(--ink-3)" font-family="var(--mono)">${c.k}</text>`).join('')}
+    <text x="${(m.l+w-m.r)/2}" y="${h-4}" text-anchor="middle" font-size="11" fill="var(--ink-2)">distributors removed</text>
+    <polygon points="${band}" fill="var(--bg-3)" opacity="0.9"></polygon>
+    <path d="${line('rmean')}" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-dasharray="4 3"></path>
+    <path d="${line('targeted')}" fill="none" stroke="var(--cash)" stroke-width="2.5"></path>
+    ${curve.map(c => `<circle cx="${xs(c.k)}" cy="${ys(c.targeted)}" r="3.5" fill="var(--cash)" stroke="var(--bg-2)" stroke-width="1.5"></circle>`).join('')}
+    <text x="${xs(first.k)+8}" y="${ys(first.targeted)+(first.targeted>0.7?18:-8)}" font-size="12" font-weight="600" fill="var(--cash)">Largest first: ${pct(first.targeted)} with one removal</text>
+    <text x="${xs(last.k)-6}" y="${ys(last.r95)-8}" text-anchor="end" font-size="12" font-weight="600" fill="var(--ink-2)">Random order (mean, 5th to 95th band)</text>
+  </svg>`;
+}
+function renderTakeaways(){
+  const T = TK = computeTakeaways(); const V = $('view-take'); const N = nodesById;
+  const single = T.div.filter(d => d.k === 1), multi = T.div.filter(d => d.k >= 2), multiDom = multi.filter(d => d.dom > 0.75);
+  const big = T.div.filter(d => d.tot >= 1e5), bigSingle = big.filter(d => d.k === 1);
+  const dollarsSingle = d3.sum(single, d => d.tot) / (d3.sum(T.div, d => d.tot) || 1);
+  const medK = d3.median(T.div, d => d.k), medN = d3.median(T.div, d => d.neff), meanK = d3.mean(T.div, d => d.k), meanN = d3.mean(T.div, d => d.neff);
+  const hub = T.hubs[0]; const c1 = T.curve[0]; const cK = T.curve[T.curve.length-1];
+  const orgTot = d3.sum([...T.org.values()]) || 1; const orgRows = [...T.org.entries()].sort((a,b)=>b[1]-a[1]);
+  const extShare = (T.org.get('Rest of US')||0)/orgTot + (T.org.get('Southeast')||0)/orgTot; const fedShare = (T.org.get('USDA TEFAP (audited)')||0)/orgTot; const metroShare = (T.org.get('Atlanta metro')||0)/orgTot;
+  const bins = [['1 source', d => d.k === 1], ['1 to 1.5', d => d.k > 1 && d.neff < 1.5], ['1.5 to 2', d => d.neff >= 1.5 && d.neff < 2], ['2 to 3', d => d.neff >= 2 && d.neff < 3], ['3 or more', d => d.neff >= 3]];
+  const binRows = bins.map(([l,f]) => { const n = T.div.filter(f).length; return {label:l, v:n/T.div.length, txt:`${n} (${pct(n/T.div.length)})`, color:'var(--food)'}; });
+  const lossSingle = d3.mean(T.grp.single) || 0, lossMulti = d3.mean(T.grp.multi) || 0;
+  const tefShare = T.tef && T.topFoodOut ? T.tef.food / T.topFoodOut : null;
+  const concRows = [{label:'Largest distributor', v:T.C.top1, color:'var(--food)'}, {label:'Next two', v:T.C.top3 - T.C.top1, color:'var(--food)'}, {label:`All other ${Math.max(0,T.C.n-3)}`, v:1 - T.C.top3, color:'var(--partner)'}];
+  V.innerHTML = `
+    <p class="lede">What the recorded flows say about the structure of Atlanta's charitable food network, and what they cannot say. Every figure below is computed from the current data: each organization's latest filing, all recorded transfers, food and cash together unless stated. The network is a reconstruction of <em>reported</em> institutional transfers, not a census of food or of who eats. The team should read these as findings to test, and the last section lists what each one still needs.</p>
+
+    <div class="block"><p class="q">A. How is the network structured?</p><h2>A hub and its spokes</h2>
+      <div class="finding"><div class="txt">
+        <p>Atlanta's charitable food network is not a collection of independent pantries. It is a layered system in which one organization, <b>${esc(hub.name)}</b>, receives <span class="n">${pct(extShare)}</span> of the value flowing into Atlanta food organizations from national suppliers and funders outside the Southeast, largely Feeding America, and passes food on to <span class="n">${hub.recips}</span> recorded partner agencies.</p>
+        <p>Among the <span class="n">${T.C.n}</span> Atlanta organizations that report giving anything out, the largest accounts for <span class="n">${pct(T.C.top1)}</span> of recorded value and the top three for <span class="n">${pct(T.C.top3)}</span>. The concentration index (HHI) is <span class="n">${T.C.hhi.toFixed(2)}</span> on a scale where 1.0 is a single supplier; the Gini coefficient of distributor throughput is <span class="n">${T.C.gini.toFixed(2)}</span>. For food alone, <span class="n">${T.CF.n}</span> organizations distribute and the largest carries <span class="n">${pct(T.CF.top1)}</span>.</p>
+        <p>The layers do not look alike. Value entering the Atlanta set is <span class="n">${pct(fedShare)}</span> audited USDA commodities and <span class="n">${pct(metroShare)}</span> from other metro organizations; the rest arrives from outside Georgia. The final distribution layer is local; the supply upstream of it is national and federal.</p>
+        <div class="proof"><button type="button" data-proof="sankey">See the three layers in the Sankey</button><button type="button" data-proof="hub">Select the hub in the network</button></div>
+      </div><div class="chart">${svgBars(concRows, {aria:'Share of recorded distributed value by distributor rank'})}<p class="cap">Share of value given out by Atlanta food organizations, latest filing per organization. ${svgBars(orgRows.map(([g,v]) => ({label:g, v:v/orgTot, color: g==='USDA TEFAP (audited)' ? 'var(--pg-commodity)' : g==='Atlanta metro' ? 'var(--food)' : 'var(--parent)'})), {aria:'Origin of value flowing into Atlanta food organizations'})}Origin of value flowing into Atlanta food organizations. "Rest of US" is dominated by Feeding America.</p></div></div>
+    </div>
+
+    <div class="block"><p class="q">B. Where is it concentrated or dependent?</p><h2>Many connections, almost no diversity</h2>
+      <div class="finding"><div class="txt">
+        <p>Of <span class="n">${T.div.length}</span> agencies that receive from an Atlanta food organization, <span class="n">${single.length}</span> (<span class="n">${pct(single.length/T.div.length)}</span>) have exactly one recorded source. Among the <span class="n">${multi.length}</span> with two or more, <span class="n">${multiDom.length}</span> still take more than three quarters of their recorded inflow from one of them. The median agency has <span class="n">${medK}</span> recorded source and an effective source count of <span class="n">${medN.toFixed(2)}</span>; the means are <span class="n">${meanK.toFixed(2)}</span> and <span class="n">${meanN.toFixed(2)}</span>. Having several recorded suppliers is not the same as being diversified.</p>
+        <p>This is not only a small-agency pattern. Of <span class="n">${big.length}</span> agencies receiving $100,000 or more, <span class="n">${pct(bigSingle.length/big.length)}</span> have one recorded source. <span class="n">${pct(dollarsSingle)}</span> of all dollars reaching partner agencies go to single-source agencies.</p>
+        <p>The dependence runs through a handful of intermediaries. <b>${esc(hub.name)}</b> is the only recorded source for <span class="n">${hub.sole}</span> agencies receiving <span class="n">${fmt(hub.soleVal)}</span>, and it sits on <span class="n">${Math.round(hub.bet).toLocaleString()}</span> of the shortest paths from an upstream source to a partner agency, against <span class="n">${Math.round(T.hubs[1]?T.hubs[1].bet:0).toLocaleString()}</span> for the next organization. Reach and concentration are the same structure seen from two sides: the hub is how food gets to hundreds of small agencies at low transaction cost, and it is also the point at which a disruption would propagate.</p>
+        <div class="proof"><button type="button" data-proof="single">Map the single-source agencies</button><button type="button" data-proof="diverse">Map the diversified agencies</button><button type="button" data-proof="sole">Show agencies whose only source is the hub</button></div>
+      </div><div class="chart">${svgBars(binRows, {aria:'Distribution of effective number of recorded sources across partner agencies'})}<p class="cap">Partner agencies by effective number of recorded sources (exp of Shannon entropy over source shares). Recorded sources exclude flows under $5,000 and anything not itemized in a public filing.</p></div></div>
+      <h3 style="margin:18px 0 8px;font:600 11px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)">Critical intermediaries</h3>
+      <div style="overflow-x:auto"><table class="sec-t"><thead><tr><th>Organization</th><th class="n">Gives out</th><th class="n">Partner agencies</th><th class="n">Recorded upstream sources</th><th class="n">Source-to-agency paths mediated</th><th class="n">Agencies with no other recorded source</th><th class="n">Value to those agencies</th></tr></thead><tbody>
+        ${T.hubs.slice(0,8).map(h => `<tr data-id="${esc(h.id)}" style="cursor:pointer"><td>${esc(h.name)}</td><td class="n">${fmt(h.out)}</td><td class="n">${h.recips}</td><td class="n">${h.ups}</td><td class="n">${Math.round(h.bet).toLocaleString()}</td><td class="n">${h.sole}</td><td class="n">${fmt(h.soleVal)}</td></tr>`).join('')}</tbody></table></div>
+      <p class="note" style="margin-top:10px">"Paths mediated" is betweenness on the three-layer network: for each pair of an upstream giver and a partner agency, the intermediaries on the shortest recorded route share one unit. Direct giver-to-agency grants bypass the intermediaries. This is institutional position, not truck routes.</p>
+    </div>
+
+    <div class="block"><p class="q">C. What happens under plausible disruptions?</p><h2>Robust to chance, fragile to the specific</h2>
+      <div class="finding"><div class="txt">
+        <p>Removing one distributor at random costs partner agencies <span class="n">${pct(c1.rmean,1)}</span> of their recorded inflow on average (median <span class="n">${pct(c1.rmed,1)}</span>). Removing the largest costs <span class="n">${pct(c1.targeted)}</span>, about <span class="n">${(c1.targeted/Math.max(c1.rmean,1e-9)).toFixed(0)}&times;</span> the random loss, and leaves <span class="n">${c1.dead}</span> agencies with no recorded inflow at all. Removing the top ${cK.k} in order removes <span class="n">${pct(cK.targeted)}</span>; ${cK.k} at random removes <span class="n">${pct(cK.rmean)}</span> on average.</p>
+        <p>The model assumes no substitution and treats the recorded network as the only network, so these are exposure figures, not predictions. Agencies with fewer than 1.5 effective sources lose <span class="n">${pct(lossSingle)}</span> of their inflow when the hub is removed; agencies with more lose <span class="n">${pct(lossMulti)}</span>. Diversity buffers, as the supply-chain literature predicts, but here almost no one has it.</p>
+        ${tefShare != null ? `<p>Public programs enter this structure upstream. Audited USDA commodities were <span class="n">${fmt(T.tef.food)}</span> of the hub's food in audit year ${T.tef.y}, about <span class="n">${pct(tefShare)}</span> of what it gives out, so a 20% cut to TEFAP food passes through as roughly a <span class="n">${pct(0.2*tefShare,1)}</span> reduction in the hub's distribution under no substitution. The meal programs and child nutrition sponsors are far more exposed to public money but distribute little food to other organizations, so the two kinds of exposure sit in different organizations.</p>` : ''}
+        <p>The Food security tab runs these cuts with a substitution parameter: none, a uniform replacement share, or replacement only where an agency has a second recorded source. Under the last rule almost nothing is replaced, because almost no agency qualifies.</p>
+        <div class="proof"><button type="button" data-proof="tefap">Show USDA commodities entering the hub</button><button type="button" data-goto="sec">Open the cut scenarios</button></div>
+      </div><div class="chart">${svgCurve(T.curve)}<p class="cap">Share of partner agencies' recorded inflow lost as distributors are removed, with no substitution. Amber: largest distributors first. Grey dashed: mean of 300 random orderings, band 5th to 95th percentile. ${T.C.n} distributors in total.</p></div></div>
+    </div>
+
+    <div class="block"><p class="q">Stability</p><h2>The same hub, year after year</h2>
+      <div class="finding"><div class="txt">
+        <p>${T.stab.filter(s => s.n >= 3).map(s => `In tax year ${s.y}, ${s.n} Atlanta organizations reported giving out ${fmt(s.t)} and ${esc(s.top)} carried ${pct(s.share)}.`).join(' ')}${T.persist ? ` Of the hub's ${T.persist.a} partner agencies in ${T.persist.y1} and ${T.persist.b} in ${T.persist.y2}, ${T.persist.both} appear in both years (${pct(T.persist.j)} overlap), so the spokes turn over while the hub does not.` : ''}</p>
+        <p>Comparison across years is loose: fiscal years differ, not every organization has filed for the latest year, and a year with few filers exaggerates the top share. The stable finding is that the largest intermediary is the same organization in every year with meaningful coverage.</p>
+      </div><div class="chart">${svgBars(T.stab.filter(s => s.n >= 3).map(s => ({label:`TY${s.y} (${s.n} givers)`, v:s.share, color:'var(--food)'})), {aria:'Top distributor share by tax year'})}<p class="cap">Largest distributor's share of recorded value given out by Atlanta food organizations, by tax year of filing.</p></div></div>
+    </div>
+
+    <div class="block"><p class="q">D. What remains invisible?</p><h2>Location is not access, and records are not the system</h2>
+      <div class="finding"><div class="txt">
+        <p>The map places <span class="n">${T.div.length}</span> agencies by mailing address. It cannot show who they serve, when they are open, whether they require appointments or residency, or how far clients travel. Research on pantry accessibility shows that a static map of locations overstates access, sometimes badly, once hours and eligibility are counted. Institutional connectivity and household access are different dimensions of food security, and this site measures only the first.</p>
+        <p>The largest amounts have no destination in the records: <span class="n">${fmt(T.selfLoop)}</span> that distributors hand out through their own programs, <span class="n">${fmt(T.belowLine)}</span> in an aggregate line for recipients under $5,000, and <span class="n">${fmt(T.nameOnly)}</span> to recipients named without an identification number. Small agencies are the most likely to be missing, so "one recorded source" overstates dependence and an empty tract may be a reporting gap. Dollars are the giver's wholesale valuation, not pounds or meals. Informal redistribution, grocery rescue, congregational sharing and mutual aid do not appear in any filing.</p>
+        <p><b>Requires additional data:</b> pantry hours and eligibility; client ZIP or tract distributions; travel time and transit access; storage and distribution capacity; pounds or meals distributed; corporate and grocery donations; informal and mutual-aid relationships; caseload and demand. Community partners are the source for most of these, and for the question of which organizations actually substitute for one another when something fails.</p>
+        <div class="proof"><button type="button" data-proof="map">Open the map and read its caveat</button></div>
+      </div><div class="chart"><div class="hyp" style="margin-top:4px">
+        <span class="id">H1</span><span>The network is hub-and-spoke: one intermediary carries most recorded value and most agencies depend on it alone.</span><span class="st yes">Supported</span>
+        <span class="id">H2</span><span>Effective source diversity, not raw source count, predicts modeled loss under targeted disruption.</span><span class="st yes">Supported (${pct(lossSingle)} vs ${pct(lossMulti)})</span>
+        <span class="id">H3</span><span>The same organizations are structural chokepoints across years.</span><span class="st part">Partly: hub stable, coverage uneven</span>
+        <span class="id">H4</span><span>Public-program exposure and food distribution sit in different organizations, so policy shocks propagate unevenly.</span><span class="st yes">Supported</span>
+        <span class="id">H5</span><span>Institutional connectivity does not imply neighborhood access.</span><span class="st no">Not testable with these data</span>
+        <span class="id">H6</span><span>Adding a small number of second-source links would reduce modeled systemic exposure most where the hub's sole dependents are largest.</span><span class="st no">Testable next; needs substitution rules from partners</span>
+      </div><p class="cap">Hypotheses for the team to evaluate. "Supported" means the current data are consistent with the statement under the stated definitions, not that it is established.</p></div></div>
+    </div>
+
+    <div class="block"><h2>Interpretation and related research</h2>
+      <p>The strongest reading of these results is a tension rather than a verdict. Centralization through one large distributor lets national and federal food reach hundreds of small agencies with little administrative burden on each of them; the same architecture concentrates exposure to anything that disrupts the center. Whether that trade-off is well struck is a question for the organizations in the network, and it depends on things the filings do not record: reserves, informal mutual aid, and the practical ability to switch suppliers.</p>
+      <ol class="refs">
+        <li>Karakoc, Konar, Puma and Varshney (2023). Structural chokepoints determine the resilience of agri-food supply chains in the United States. <i>Nature Food</i> 4, 607&ndash;615. <span class="why">Source of the chokepoint framing and the betweenness and throughput measures used for the intermediaries table.</span></li>
+        <li>Gomez, Mejia, Ruddell and Rushforth (2021). Supply chain diversity buffers cities against food shocks. <i>Nature</i> 595, 250&ndash;254. <span class="why">Source of the Shannon-diversity and effective-source-count measures and of hypothesis H2.</span></li>
+        <li>Kaplan et al. (2020). Accessibility to emergency food systems in south-central Indiana evaluated by spatiotemporal indices of pressure at county and pantry level. <i>Nature Food</i> 1, 284&ndash;291. <span class="why">Why the map's points must not be read as access; the case for hours, eligibility and travel-time data.</span></li>
+        <li>Davis, Downs and Gephart (2021). Towards food supply chain resilience to environmental shocks. <i>Nature Food</i> 2, 54&ndash;65. <span class="why">The shock-propagation framework behind the funding, commodity and organizational scenarios and the substitution parameter.</span></li>
+        <li>Zhao et al. (2026). Core cities dominate and shape food supply resilience in the Pearl River Delta. <i>Communications Sustainability</i> 1, 91. <span class="why">Closest methodological analogue: a food network reconstructed from transaction records, with targeted versus random failure.</span></li>
+        <li>Karakoc and Konar (2025). Trade-offs between resilience, sustainability and cost in the US agri-food transportation infrastructure. <i>Nature Food</i> 6, 401&ndash;409. <span class="why">Why concentration is a trade-off and not simply a defect.</span></li>
+        <li>Kinnunen et al. (2020). Local food crop production can fulfil demand for less than one-third of the population. <i>Nature Food</i> 1, 229&ndash;237. <span class="why">Framing of geographic dependence by origin rather than "local food".</span></li>
+        <li>Zhang et al. (2026). Socioeconomic, demographic and geographic disparities in accessibility to food pantries in the United States. <i>Scientific Reports</i> 16, 6248. <span class="why">National benchmark for pantry accessibility; motivates the travel-time extension.</span></li>
+        <li>Jennings et al. (2024). Stakeholder-driven transformative adaptation is needed for climate-smart nutrition security in sub-Saharan Africa. <i>Nature Food</i> 5, 37&ndash;47. <span class="why">Model for co-designing the disruption scenarios and substitution rules with partner agencies.</span></li>
+        <li>Rao, Binesse and Vinod (2026). Food systems literacy in Indigenous health and nutrition. <i>Nature Food</i> 7, 746&ndash;755. <span class="why">The general point that administrative representations omit what communities know; used only for that methodological lesson.</span></li>
+      </ol>
+    </div>`;
+  V.querySelectorAll('[data-proof]').forEach(b => b.addEventListener('click', () => showProof(b.dataset.proof)));
+  V.querySelectorAll('tr[data-id]').forEach(tr => tr.addEventListener('click', () => { showTab('map'); setLayout('network'); setHighlight(null); select(tr.dataset.id); }));
+}
+
+// ---------- highlight sets (proof views) ----------
+function setHighlight(ids, label){ state.hl = ids ? {ids:new Set(ids), label} : null; const c = $('hlchip'); if (state.hl){ c.innerHTML = `Highlighting ${esc(label)} <button type="button" id="hlclear">Clear</button>`; c.hidden = false; $('hlclear').addEventListener('click', () => setHighlight(null)); } else c.hidden = true; needDraw = true; }
+function showProof(kind){
+  const T = TK || computeTakeaways();
+  showTab('map'); select(null);
+  if (kind === 'hub'){ setLayout('network'); setHighlight(null); if (T.top){ select(T.top); const gn = G.nodes.find(n=>n.id===T.top); if (gn){ fitPending = false; transform = d3.zoomIdentity.translate(W/2 - 0.9*gn.x, H/2 - 0.9*gn.y).scale(0.9); d3.select(canvas).call(zoom.transform, transform); } } }
+  else if (kind === 'sankey'){ setLayout('sankey'); setHighlight(null); }
+  else if (kind === 'single'){ setLayout('map'); setHighlight(T.div.filter(d => d.k === 1).map(d => d.t), `${T.div.filter(d=>d.k===1).length} agencies with one recorded source`); }
+  else if (kind === 'diverse'){ setLayout('map'); setHighlight(T.div.filter(d => d.neff >= 1.5).map(d => d.t), `${T.div.filter(d=>d.neff>=1.5).length} agencies with at least 1.5 effective sources`); }
+  else if (kind === 'sole'){ setLayout('network'); const ids = T.div.filter(d => d.k === 1 && [...d.srcs.keys()][0] === T.top).map(d => d.t); setHighlight(ids.concat([T.top]), `${ids.length} agencies whose only recorded source is the largest distributor`); }
+  else if (kind === 'tefap'){ setLayout('sankey'); setHighlight(null); select('fed:tefap'); }
+  else if (kind === 'external'){ setLayout('sankey'); setHighlight(null); }
+  else if (kind === 'map'){ setLayout('map'); setHighlight(null); }
+  window.scrollTo({top:0});
+}
+
 // ---------- tabs ----------
-const tabs = {map: [$('tab-map'), $('view-map')], sec: [$('tab-sec'), $('view-sec')], about: [$('tab-about'), $('view-about')]};
-function showTab(t){ for (const k in tabs){ tabs[k][0].setAttribute('aria-selected', String(k===t)); tabs[k][1].hidden = k!==t; } state.tab = t; if (t==='sec') renderSecurity(); else if (t==='map') { resize(); needDraw = true; } if (t!=='map') window.scrollTo({top:0}); }
-$('tab-map').addEventListener('click', () => showTab('map')); $('tab-sec').addEventListener('click', () => showTab('sec')); $('tab-about').addEventListener('click', () => showTab('about'));
+const tabs = {map: [$('tab-map'), $('view-map')], sec: [$('tab-sec'), $('view-sec')], take: [$('tab-take'), $('view-take')], about: [$('tab-about'), $('view-about')]};
+function showTab(t){ for (const k in tabs){ tabs[k][0].setAttribute('aria-selected', String(k===t)); tabs[k][1].hidden = k!==t; } state.tab = t; if (t==='sec') renderSecurity(); else if (t==='take') renderTakeaways(); else if (t==='map') { resize(); needDraw = true; } if (t!=='map') window.scrollTo({top:0}); }
+$('tab-map').addEventListener('click', () => showTab('map')); $('tab-sec').addEventListener('click', () => showTab('sec')); $('tab-take').addEventListener('click', () => showTab('take')); $('tab-about').addEventListener('click', () => showTab('about'));
 document.addEventListener('click', ev => { const a = ev.target.closest('a[data-goto]'); if (a){ ev.preventDefault(); showTab(a.dataset.goto); } });
 (function fillAbout(){ const m = DATA.meta; const sefaOrgs = DATA.nodes.filter(n => n.sefa).length;
   const vals = {bundles: m.bundles, years: m.years[0] + ' to ' + m.years[m.years.length-1], filers: m.filers.toLocaleString(), atl: m.atl_set, generated: m.generated, sefaOrgs};
@@ -821,7 +1022,7 @@ document.addEventListener('click', ev => { const a = ev.target.closest('a[data-g
 // ---------- food security tab ----------
 const FED = DATA.fed; const PG = {commodity:'USDA commodity food', meals:'USDA community meal programs', senior:'HHS aging, health & community services', local:'USDA local food & farm programs', other:'Other federal', context:'School meals, WIC, SNAP'};
 const pgroup = p => (FED && FED.programs[p]) ? FED.programs[p].group : (String(p).startsWith('10.') ? 'local' : String(p).startsWith('93.') ? 'senior' : 'other');
-const sec = { fy:'all', base:'gov', group:'all', cut:30 };
+const sec = { fy:'all', base:'gov', group:'all', cut:30, mode:'none', subst:25 };
 function latestLinks(){ return DATA.edges.filter(e => e.y === latestYearBySrc.get(e.s)); }
 function nodeFed(id, fyFilter){ const out = {}; if (!FED) return out; for (const r of [...FED.direct, ...FED.sub]){ if (r.n!==id) continue; if (fyFilter==='all' ? !(r.fy>=2022) : r.fy!==+fyFilter) continue; out[r.p] = (out[r.p]||0) + r.a; } return out; }
 function latestFin(n){ const ys = Object.keys(n.fin||{}); if (!ys.length) return null; const y = ys.sort().pop(); return Object.assign({y:+y}, n.fin[y]); }
@@ -890,8 +1091,10 @@ function renderSecurity(){
     for (const [ein, t] of tefapOrgFood){ const n = nodesById.get(ein); if (!n) continue; const out = outFood.get(ein)||0; if (!out) continue; const shareOfRev = Math.min(1, t.food/out); hubExp.set(ein, {base:t.food, shareOfRev, lost:t.food*cut, foodOut:out, name:n.name}); }
   } else
   for (const r of orgRows){ const base = sec.base==='gov' ? r.gov : (sec.group==='all' ? r.fedTot : d3.sum(r.segs.filter(s=>s.g===sec.group), s=>s.v)); if (!base) continue; const shareOfRev = r.rev ? Math.min(1, base/r.rev) : 0; hubExp.set(r.id, {base, shareOfRev, lost: base*cut, foodOut:r.foodOut, name:r.name}); }
-  const atRisk = new Map(); let totalRisk = 0;
-  for (const e of L){ const h = hubExp.get(e.s); if (!h || !(e.n>0)) continue; const risk = e.n * cut * h.shareOfRev; if (risk<=0) continue; atRisk.set(e.t, (atRisk.get(e.t)||0)+risk); totalRisk += risk; h.foodRisk = (h.foodRisk||0)+risk; }
+  const srcCount = new Map(); for (const e of L){ if (e.s.startsWith('fed:')) continue; if (!srcCount.has(e.t)) srcCount.set(e.t, new Set()); srcCount.get(e.t).add(e.s); }
+  const substFor = t => sec.mode === 'none' ? 0 : sec.mode === 'uniform' ? sec.subst/100 : ((srcCount.get(t)||new Set()).size >= 2 ? sec.subst/100 : 0);
+  const atRisk = new Map(); let totalRisk = 0, replaced = 0;
+  for (const e of L){ const h = hubExp.get(e.s); if (!h || !(e.n>0)) continue; const gross = e.n * cut * h.shareOfRev; if (gross<=0) continue; const risk = gross * (1 - substFor(e.t)); replaced += gross - risk; atRisk.set(e.t, (atRisk.get(e.t)||0)+risk); totalRisk += risk; h.foodRisk = (h.foodRisk||0)+risk; }
   const riskRows = [...atRisk.entries()].sort((a,b)=>b[1]-a[1]).slice(0,25).map(([t,v]) => { const n = nodesById.get(t); const tot = d3.sum([...inBy.get(t).values()]); return {id:t, name:n.name, sub:n.city||'', segs:[{g:'local', v}], total:v, rs:`${(100*v/tot).toFixed(1)}% of inflow`}; });
   const hubRiskRows = [...hubExp.values()].filter(h=>h.foodRisk).sort((a,b)=>b.foodRisk-a.foodRisk);
   const legend = `<div class="legend2">${['commodity','meals','senior','local','other'].map(g=>`<span><i class="pg-${g}"></i>${PG[g]}</span>`).join('')}</div>`;
@@ -910,11 +1113,13 @@ function renderSecurity(){
     <div class="block"><h2>Who depends on public money</h2><p class="sub">Government grants as each organization reported them on its own Form 990 (all levels of government), as a share of total revenue. The bar shows federal dollars USAspending can trace to the organization directly or as a sub-award, by program group. Sorted by dependence, so small meal programs rise above the food bank.</p>${legend}
       <div style="overflow-x:auto"><table class="sec-t"><thead><tr><th>Organization</th><th class="n">FY</th><th class="n">Gov grants (990)</th><th class="n">Share of revenue</th><th style="min-width:180px">Traceable federal awards</th><th class="n">Total</th><th class="n">Audited federal (Single Audit)</th><th class="n">Food given out</th></tr></thead><tbody>
       ${orgRows.slice(0,30).map(r => { const mx = d3.max(orgRows, x=>x.fedTot)||1; return `<tr data-id="${esc(r.id)}"><td>${esc(r.name)}<br><small style="color:var(--ink-3)">${esc(r.sub)}</small></td><td class="n">${r.y||''}</td><td class="n">${r.gov?fmt(r.gov):''}</td><td class="n">${r.rev?(100*r.share).toFixed(0)+'%':''}</td><td><span class="tr" style="display:flex;gap:2px;height:12px;background:var(--bg-3);border-radius:3px;overflow:hidden">${r.segs.map(s=>`<i class="pg-${s.g}" style="display:block;width:${100*s.v/mx}%" title="${esc(PG[s.g])}: ${fmt(s.v)}"></i>`).join('')}</span></td><td class="n">${r.fedTot?fmt(r.fedTot):''}</td><td class="n">${(() => { const n = nodesById.get(r.id); if (!n || !n.sefa) return ''; const y = Object.keys(n.sefa).sort().pop(); return fmt(n.sefa[y]._total) + `<br><small style="color:var(--ink-3)">audit ${y}</small>`; })()}</td><td class="n">${r.foodOut?fmt(r.foodOut):''}</td></tr>`; }).join('')}</tbody></table></div><p class="note" style="margin-top:12px">The audited column is each organization's total federal expenditures from its Single Audit (required above $750K a year), including USDA food. It is the most complete public figure and usually larger than what USAspending can trace.</p></div>
-    <div class="block"><h2>Where a cut lands</h2><p class="sub">A simple pass-through model. Each hub's exposure is its public funding as a share of revenue. A cut of <b>${sec.cut}%</b> to that funding is assumed to reduce the food it distributes by the same fraction of its exposure, spread across its partners in proportion to what they receive today. With the TEFAP base, exposure is audited USDA food as a share of the food the hub gives out, so a cut to commodities passes straight through.</p>
+    <div class="block"><h2>Where a cut lands</h2><p class="sub">A simple pass-through model. Each hub's exposure is its public funding as a share of revenue. A cut of <b>${sec.cut}%</b> to that funding is assumed to reduce the food it distributes by the same fraction of its exposure, spread across its partners in proportion to what they receive today. With the TEFAP base, exposure is audited USDA food as a share of the food the hub gives out, so a cut to commodities passes straight through. The substitution control adds a second scenario: agencies replace a share of what they lose, either all of them or only those with a second recorded source. Under the second rule little is replaced, because few agencies have one.</p>
       <div class="scn"><div class="ctl"><label for="sec-base">Funding base</label><select id="sec-base"><option value="gov"${sec.base==='gov'?' selected':''}>Government grants on the 990 (all levels)</option><option value="fed"${sec.base==='fed'?' selected':''}>Traceable federal awards (USAspending)</option>${TF?`<option value="tefap"${sec.base==='tefap'?' selected':''}>USDA TEFAP food received (Single Audit)</option>`:''}</select></div>
       ${sec.base==='fed'?`<div class="ctl"><label for="sec-group">Program group</label><select id="sec-group"><option value="all">All programs</option>${['commodity','meals','senior','local','other'].map(g=>`<option value="${g}"${sec.group===g?' selected':''}>${PG[g]}</option>`).join('')}</select></div>`:''}
-      <div class="ctl"><label for="sec-cut">Cut</label><input type="range" id="sec-cut" min="5" max="100" step="5" value="${sec.cut}"><span class="val">${sec.cut}%</span></div></div>
-      <div class="tiles" style="margin-bottom:14px"><div class="tile"><div class="l">Food at risk</div><div class="v">${fmt(totalRisk)}</div><div class="s">across ${atRisk.size} partner agencies</div></div><div class="tile"><div class="l">${sec.base==='tefap'?'USDA food removed':'Public funding removed'}</div><div class="v">${fmt(d3.sum([...hubExp.values()], h=>h.lost))}</div><div class="s">from ${hubExp.size} Atlanta organizations with a funding base</div></div></div>
+      <div class="ctl"><label for="sec-cut">Cut</label><input type="range" id="sec-cut" min="5" max="100" step="5" value="${sec.cut}"><span class="val">${sec.cut}%</span></div>
+      <div class="ctl"><label for="sec-mode">Substitution</label><select id="sec-mode"><option value="none"${sec.mode==='none'?' selected':''}>None (baseline)</option><option value="uniform"${sec.mode==='uniform'?' selected':''}>Every agency replaces a share</option><option value="diverse"${sec.mode==='diverse'?' selected':''}>Only agencies with a second recorded source</option></select></div>
+      ${sec.mode!=='none'?`<div class="ctl"><label for="sec-subst">Replaced</label><input type="range" id="sec-subst" min="0" max="75" step="5" value="${sec.subst}"><span class="val">${sec.subst}%</span></div>`:''}</div>
+      <div class="tiles" style="margin-bottom:14px"><div class="tile"><div class="l">Food at risk</div><div class="v">${fmt(totalRisk)}</div><div class="s">across ${atRisk.size} partner agencies${replaced?`; ${fmt(replaced)} assumed replaced`:''}</div></div><div class="tile"><div class="l">${sec.base==='tefap'?'USDA food removed':'Public funding removed'}</div><div class="v">${fmt(d3.sum([...hubExp.values()], h=>h.lost))}</div><div class="s">from ${hubExp.size} Atlanta organizations with a funding base</div></div></div>
       <div class="two"><div><h3 style="margin:0 0 8px;font:600 11px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)">Hubs: exposure and food at risk</h3><div style="overflow-x:auto"><table class="sec-t"><thead><tr><th>Hub</th><th class="n">Exposure</th><th class="n">Funding cut</th><th class="n">Food at risk</th></tr></thead><tbody>${hubRiskRows.map(h=>`<tr><td>${esc(h.name)}</td><td class="n">${(100*h.shareOfRev).toFixed(0)}%</td><td class="n">${fmt(h.lost)}</td><td class="n">${fmt(h.foodRisk)}</td></tr>`).join('')}</tbody></table></div></div>
       <div><h3 style="margin:0 0 8px;font:600 11px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)">Partner agencies with the most food at risk</h3>${riskRows.length?bars(riskRows):'<p class="empty">Nothing at risk under these settings.</p>'}</div></div></div>
     <p class="note"><b>Read with care.</b> Schedule I itemizes recipients of $5,000 or more, and most small pantries file a 990-EZ or 990-N with no grant detail, so "one recorded source" overstates dependence. The food itself in TEFAP (USDA program 10.569) does not appear in USAspending at all; only the administrative money does. Food banks receive those commodities through the state and usually book them as noncash contributions, not government grants, so the food bank's public exposure is understated in every measure here. Sub-award reporting to USAspending is incomplete. The scenario is arithmetic on reported figures, not a forecast.</p>`;
@@ -923,6 +1128,8 @@ function renderSecurity(){
   $('sec-base').addEventListener('change', ev => { sec.base = ev.target.value; rerender(); });
   const gSel = $('sec-group'); if (gSel) gSel.addEventListener('change', () => { sec.group = gSel.value; rerender(); });
   const cutEl = $('sec-cut'); cutEl.addEventListener('input', () => { sec.cut = +cutEl.value; cutEl.nextElementSibling.textContent = sec.cut + '%'; }); cutEl.addEventListener('change', rerender);
+  const modeEl = $('sec-mode'); modeEl.addEventListener('change', () => { sec.mode = modeEl.value; rerender(); });
+  const subEl = $('sec-subst'); if (subEl){ subEl.addEventListener('input', () => { sec.subst = +subEl.value; subEl.nextElementSibling.textContent = sec.subst + '%'; }); subEl.addEventListener('change', rerender); }
   V.querySelectorAll('[data-id]').forEach(el => { el.style.cursor = 'pointer'; el.addEventListener('click', () => { const id = el.dataset.id; if (!nodesById.has(id)) return; showTab('map'); if (!G.nodes.some(n=>n.id===id)){ state.min = 0; minEl.value = 0; showMin(); buildGraph(); } select(id); const gn = G.nodes.find(n=>n.id===id); if (gn){ const k = Math.max(transform.k, 1.2); transform = d3.zoomIdentity.translate(W/2 - k*gn.x, H/2 - k*gn.y).scale(k); d3.select(canvas).call(zoom.transform, transform); } }); });
 }
 if (state.tab === 'sec') showTab('sec');
