@@ -10,6 +10,7 @@
   --focus:#168A5E;
   --pg-commodity:#168A5E; --pg-meals:#1F6FD0; --pg-senior:#9A4E9E; --pg-local:#CC7A00;
   --seq1:#EAF1F8; --seq2:#BFD5EA; --seq3:#8FB5DA; --seq4:#5A8FC4; --seq5:#2C5F9E; --water:#DCE6EC;
+  --fq1:#E3F1E9; --fq2:#B9DCC9; --fq3:#83C1A3; --fq4:#48A07A; --fq5:#0F6B48;
   --display:"Barlow Condensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;
   --body:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
   --mono:"IBM Plex Mono","SFMono-Regular",Menlo,Consolas,monospace;
@@ -24,6 +25,7 @@
     --focus:#27A074;
     --pg-commodity:#27A074; --pg-meals:#4090E8; --pg-senior:#CC66A8; --pg-local:#C57F1A;
     --seq1:#1B2E44; --seq2:#22436A; --seq3:#2B5C8F; --seq4:#3878B5; --seq5:#5296D3; --water:#101820;
+    --fq1:#17332A; --fq2:#1E4A3A; --fq3:#27664F; --fq4:#2F8566; --fq5:#3AA47F;
   }
 }
 :root[data-theme="dark"]{
@@ -35,6 +37,7 @@
   --focus:#27A074;
   --pg-commodity:#27A074; --pg-meals:#4090E8; --pg-senior:#CC66A8; --pg-local:#C57F1A;
   --seq1:#1B2E44; --seq2:#22436A; --seq3:#2B5C8F; --seq4:#3878B5; --seq5:#5296D3; --water:#101820;
+  --fq1:#17332A; --fq2:#1E4A3A; --fq3:#27664F; --fq4:#2F8566; --fq5:#3AA47F;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -339,6 +342,7 @@ table.sec-t td.n,table.sec-t th.n{font-family:var(--mono);font-variant-numeric:t
       <li>Dollar amounts are rounded for display (K thousands, M millions, B billions). Tables in the side panel show exact reported values on hover.</li>
       <li>EINs are shown as reported. Organizations named only by a foundation, with no EIN, are marked "EIN not reported".</li>
       <li>On the map, <b>filled points</b> are street-geocoded, <b>hollow points</b> are approximate. Point size is dollars in and out under the current filters. <b>Low income and low access</b> is USDA's 2025 designation by driving distance: a low-income tract where a significant share of residents live more than half a mile (urban) or ten miles (rural) from a SNAP-authorized retailer. Quantitative shadings use five quantile classes over metro tracts; for median household income the scale is inverted so that darker means lower.</li>
+      <li>The map's <b>heat map of food received</b> is a kernel density of noncash food received by organizations that do not pass food on, weighted by value and placed at organization addresses, with a smoothing radius of about three percent of the frame. <b>Tracts by food received</b> sums the same quantity by census tract in quintiles. Both exclude hubs, food banks (NTEE K31) and fund-raising or distribution cooperatives (K11, K12), even when those report no grants of their own, so their intake does not swamp their partners, and both show where recorded deliveries land, never where food is eaten. Flow arcs carry a moving dash from giver to recipient when motion is not reduced by the viewer's system setting.</li>
       <li>On the Takeaways tab every claim carries one of four labels: <b>Observed</b> (computed from the records under the stated definitions), <b>Modeled</b> (from an explicit scenario with stated assumptions), <b>Literature-supported interpretation</b>, or <b>Future / requires data</b>. "Charitable food network" and "emergency food infrastructure" name what the records reconstruct; "household food security" names what they do not measure.</li>
     </ul>
 
@@ -386,7 +390,12 @@ table.sec-t td.n,table.sec-t th.n{font-family:var(--mono);font-variant-numeric:t
         <button type="button" data-v="map" aria-pressed="false">Map</button>
       </div>
     </div>
-    <div class="ctl" id="mapctl" hidden><label for="mapbase">Shade tracts by</label><select id="mapbase">
+    <div class="ctl" id="mapctl" hidden><label for="mapshow">Show</label><select id="mapshow">
+        <option value="orgs">Organizations</option>
+        <option value="heat">Heat map of food received</option>
+        <option value="tractfood">Tracts by food received</option>
+      </select>
+      <label for="mapbase" style="margin-left:8px">Shade tracts by</label><select id="mapbase">
         <option value="none">Nothing</option>
         <optgroup label="USDA retailer access, 2025">
           <option value="lila">Low income and low access</option>
@@ -449,7 +458,7 @@ const KIND = {atl:'Atlanta food org', parent:'Outside supplier / funder', partne
 const css = k => getComputedStyle(document.documentElement).getPropertyValue(k).trim();
 
 // ---------- state ----------
-const state = { year:'latest', flow:'all', min:Math.pow(10,3.7), selected:null, hover:null, q:'', layout:'network', detail:12, mapbase:'lila', maphubs:false, mapflows:false, hl:null };
+const state = { year:'latest', flow:'all', min:Math.pow(10,3.7), selected:null, hover:null, q:'', layout:'network', detail:12, mapbase:'lila', mapshow:'orgs', maphubs:false, mapflows:false, hl:null };
 try { const h = window.claude && window.claude.hot && window.claude.hot.data; if (h && h.state) Object.assign(state, h.state); } catch(e){}
 if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => ({state}));
 
@@ -473,7 +482,7 @@ function buildGraph(){
   for (const n of nodes) n.r = rScale((inTot.get(n.id)||0)+(outTot.get(n.id)||0));
   restartSim();
   if (state.layout === 'sankey') computeSankey();
-  if (state.layout === 'map') renderMapOverlays();
+  HEAT = null; if (state.layout === 'map') renderMapOverlays();
   renderStats(); renderPanel();
 }
 
@@ -505,21 +514,48 @@ function tractColor(id, seq, C){
   const v = mapVal(id, k); if (v == null || !isFinite(v)) return C.bg2; return seq[MAP.scales[k](v)];
 }
 function mapValue(n){ return (G.inTot.get(n.id)||0) + (G.outTot.get(n.id)||0); }
+// food that reaches its last recorded stop: noncash received by organizations that do not themselves give food on
+const REDIST = n => (G.outTot.get(n.id)||0) > 0 || /^K1[12]|^K31/.test(n.ref.ntee||'') || /food bank|second harvest|cooperative/i.test(n.ref.name||'');
+function foodEnds(){ const m = new Map(); for (const l of G.links){ if (!(l.e.n > 0)) continue; if (l.source.id === l.target.id) continue; if (REDIST(l.target)) continue; m.set(l.target.id, (m.get(l.target.id)||0) + l.e.n); } return m; }
+let HEAT = null;  // {canvas, key}
+function heatRaster(C, ends){
+  const key = [W, H, transform.x.toFixed(1), transform.y.toFixed(1), transform.k.toFixed(3), G.links.length, state.flow, state.min, state.maphubs].join('|');
+  if (HEAT && HEAT.key === key) return HEAT.canvas;
+  const sc = 0.5; const w = Math.max(2, Math.round(W*sc)), h = Math.max(2, Math.round(H*sc));
+  const off = document.createElement('canvas'); off.width = w; off.height = h; const o = off.getContext('2d');
+  const pts = []; let max = 0;
+  for (const [id, v] of ends){ const p = MAP.pts.get(id); if (!p) continue; const x = (p[0]*transform.k + transform.x)*sc, y = (p[1]*transform.k + transform.y)*sc; if (x < -80 || y < -80 || x > w+80 || y > h+80) continue; pts.push([x, y, v]); if (v > max) max = v; }
+  const R = Math.max(10, 0.035*W*sc*Math.sqrt(transform.k));   // bandwidth: about 3.5% of the frame at rest, growing slowly with zoom
+  o.globalCompositeOperation = 'lighter';
+  for (const [x, y, v] of pts){ const a = Math.min(1, Math.sqrt(v/max)); const g = o.createRadialGradient(x, y, 0, x, y, R); g.addColorStop(0, `rgba(255,255,255,${(0.55*a).toFixed(3)})`); g.addColorStop(1, 'rgba(255,255,255,0)'); o.fillStyle = g; o.beginPath(); o.arc(x, y, R, 0, Math.PI*2); o.fill(); }
+  const img = o.getImageData(0, 0, w, h); const d = img.data;
+  const ramp = d3.piecewise(d3.interpolateRgb, [css('--fq2'), css('--fq3'), css('--fq4'), css('--fq5')]); const lut = [];
+  for (let i = 0; i < 256; i++){ const t = i/255; const c = d3.color(ramp(Math.min(1, t*1.15))); lut.push([c.r, c.g, c.b, Math.round(255*Math.min(0.92, Math.pow(t, 0.75)))]); }
+  for (let i = 0; i < d.length; i += 4){ const a = d[i]; const c = lut[Math.min(255, a)]; d[i] = c[0]; d[i+1] = c[1]; d[i+2] = c[2]; d[i+3] = a ? c[3] : 0; }
+  o.globalCompositeOperation = 'source-over'; o.putImageData(img, 0, 0);
+  HEAT = {canvas: off, key}; return off;
+}
+let tractFoodScale = null, tractFood = null;
+function computeTractFood(ends){ tractFood = new Map(); for (const [id, v] of ends){ const n = nodesById.get(id); if (n && n.geo && n.geo.tract) tractFood.set(n.geo.tract, (tractFood.get(n.geo.tract)||0) + v); } const vals = [...tractFood.values()]; tractFoodScale = vals.length ? d3.scaleQuantile().domain(vals).range([0,1,2,3,4]) : null; }
+let flowPhase = 0; const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let mapR = d3.scaleSqrt().range([2.5, 22]);
 function mapHidden(n){ return state.maphubs && n.ref.kind === 'atl' && (G.outTot.get(n.id)||0) > 0 && n.id !== state.selected; }
 function drawMap(C){
-  const seq = ['--seq1','--seq2','--seq3','--seq4','--seq5'].map(css); const k = transform.k;
+  const seq = ['--seq1','--seq2','--seq3','--seq4','--seq5'].map(css); const fq = ['--fq1','--fq2','--fq3','--fq4','--fq5'].map(css); const k = transform.k;
+  const ends = state.mapshow !== 'orgs' ? foodEnds() : null; if (state.mapshow === 'tractfood') computeTractFood(ends);
   ctx.setTransform(dpr,0,0,dpr,0,0); ctx.fillStyle = C.water; ctx.fillRect(0,0,W,H);
   ctx.translate(transform.x, transform.y); ctx.scale(k, k);
-  for (const t of MAP.tracts){ ctx.fillStyle = tractColor(t.id, seq, C); ctx.fill(t.p2d); }
+  for (const t of MAP.tracts){ ctx.fillStyle = state.mapshow === 'tractfood' ? (tractFood.has(t.id) && tractFoodScale ? fq[tractFoodScale(tractFood.get(t.id))] : C.bg2) : state.mapshow === 'heat' ? C.bg3 : tractColor(t.id, seq, C); ctx.fill(t.p2d); }
   ctx.strokeStyle = C.line; ctx.lineWidth = 0.5/k; ctx.globalAlpha = 0.9; for (const t of MAP.tracts) ctx.stroke(t.p2d); ctx.globalAlpha = 1;
   ctx.strokeStyle = C.ink3; ctx.lineWidth = 1.3/k; for (const c of MAP.counties) ctx.stroke(c.p2d);
   if (mapHover && mapHover.tract){ ctx.strokeStyle = C.ink; ctx.lineWidth = 1.6/k; ctx.stroke(mapHover.tract.p2d); }
   ctx.font = `600 ${11/k}px "Barlow Condensed","Arial Narrow",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = C.ink2;
   for (const c of MAP.counties){ ctx.globalAlpha = 0.85; ctx.lineWidth = 3/k; ctx.strokeStyle = C.bg; ctx.strokeText(c.name.toUpperCase(), c.c[0], c.c[1]); ctx.fillText(c.name.toUpperCase(), c.c[0], c.c[1]); } ctx.globalAlpha = 1;
+  if (state.mapshow === 'heat'){ const hc = heatRaster(C, ends); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.globalAlpha = 1; ctx.drawImage(hc, 0, 0, W, H); ctx.translate(transform.x, transform.y); ctx.scale(k, k); ctx.strokeStyle = C.ink3; ctx.lineWidth = 1.1/k; ctx.globalAlpha = 0.6; for (const c of MAP.counties) ctx.stroke(c.p2d); ctx.globalAlpha = 1; }
   const focus = state.selected || state.hover; const nb = focus ? neighborSet(focus) : null;
   const vis = G.nodes.filter(n => MAP.pts.has(n.id) && !mapHidden(n));
   mapR.domain([0, d3.max(vis, mapValue) || 1]);
+  const showingFlows = state.mapflows || focus; const animate = showingFlows && !reducedMotion; if (animate){ flowPhase = (flowPhase + 0.6) % 1000; needDraw = true; }
   // flows
   for (const l of G.links){
     const a = MAP.pts.get(l.source.id), b = MAP.pts.get(l.target.id); if (!a || !b) continue;
@@ -529,13 +565,14 @@ function drawMap(C){
     const food = state.flow === 'cash' ? false : state.flow === 'food' ? true : l.e.n >= l.e.c;
     ctx.globalAlpha = touches ? 0.8 : (nb ? 0.05 : 0.22); ctx.strokeStyle = food ? C.food : C.cash; ctx.lineWidth = Math.max(0.6, wScale(val(l.e))*0.45)/k; ctx.lineCap = 'round';
     const dx=b[0]-a[0], dy=b[1]-a[1]; ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.quadraticCurveTo((a[0]+b[0])/2 - dy*0.18, (a[1]+b[1])/2 + dx*0.18, b[0], b[1]); ctx.stroke();
+    if (animate){ ctx.setLineDash([3/k, 9/k]); ctx.lineDashOffset = -flowPhase/k; ctx.globalAlpha = touches ? 0.95 : 0.55; ctx.strokeStyle = C.bg; ctx.lineWidth = Math.max(0.6, wScale(val(l.e))*0.45)/k * 0.5; ctx.stroke(); ctx.setLineDash([]); }
   }
   ctx.globalAlpha = 1;
   // points, smallest last so big ones do not hide them
   const order = vis.slice().sort((x,y) => mapValue(y) - mapValue(x));
   for (const n of order){
-    const p = MAP.pts.get(n.id); const r = mapR(mapValue(n))/k; const kind = n.ref.kind; const col = kind==='atl' ? C.food : kind==='parent' ? C.parent : C.partner;
-    const active = (!nb || nb.has(n.id)) && !(state.hl && !nb && !state.hl.ids.has(n.id)); ctx.globalAlpha = active ? 1 : 0.15;
+    const p = MAP.pts.get(n.id); const subdued = state.mapshow !== 'orgs' && n.id !== state.selected && n.id !== state.hover; const r = (subdued ? 2.2 : mapR(mapValue(n)))/k; const kind = n.ref.kind; const col = kind==='atl' ? C.food : kind==='parent' ? C.parent : C.partner;
+    const active = (!nb || nb.has(n.id)) && !(state.hl && !nb && !state.hl.ids.has(n.id)); ctx.globalAlpha = active ? (subdued ? 0.55 : 1) : 0.15;
     ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, Math.PI*2);
     if (n.ref.geo.q === 'street'){ ctx.fillStyle = col; ctx.fill(); ctx.strokeStyle = C.bg; ctx.lineWidth = 1/k; ctx.stroke(); }
     else { ctx.fillStyle = C.bg; ctx.globalAlpha = active ? 0.75 : 0.15; ctx.fill(); ctx.globalAlpha = active ? 1 : 0.2; ctx.strokeStyle = col; ctx.lineWidth = 1.8/k; ctx.stroke(); }
@@ -545,7 +582,7 @@ function drawMap(C){
   const fs = Math.max(10, 12/k); ctx.font = `600 ${fs}px "Barlow Condensed","Arial Narrow",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
   for (const n of order){
     const p = MAP.pts.get(n.id); const r = mapR(mapValue(n))/k;
-    const show = n.id===state.selected || n.id===state.hover || (nb && nb.has(n.id) && r*k > 4) || (!nb && r*k >= 11);
+    const show = n.id===state.selected || n.id===state.hover || (nb && nb.has(n.id) && r*k > 4) || (!nb && state.mapshow === 'orgs' && r*k >= 11);
     if (!show) continue;
     const t = n.ref.name.length > 30 ? n.ref.name.slice(0,29)+'\u2026' : n.ref.name;
     ctx.lineWidth = 3/k; ctx.strokeStyle = C.bg; ctx.strokeText(t, p[0], p[1] + r + 2/k); ctx.fillStyle = C.ink; ctx.fillText(t, p[0], p[1] + r + 2/k);
@@ -569,7 +606,10 @@ function renderMapOverlays(){
     else { const q = MAP.scales[k].quantiles(); const dom = MAP.scales[k].domain(); const edges = [d3.min(dom), ...q, d3.max(dom)]; const cls = v.invert ? [4,3,2,1,0] : [0,1,2,3,4]; rows = [0,1,2,3,4].map(i => `<div class="row"><i style="background:var(--seq${cls[i]+1})"></i>${v.fmt(edges[i])} &ndash; ${v.fmt(edges[i+1])}</div>`).join(''); }
   }
   const srcTxt = v && v.src === 'acs' ? `Census tracts (2020), 29-county Atlanta metro. ${GEO.acs_vintage||'ACS 5-year 2020-2024'}.` : 'Census tracts (2020), 29-county Atlanta metro. USDA ERS SNAP-authorized Retailer Access Map 2025 (2020 Census; ACS 2020-2024).';
-  lg.innerHTML = `${k!=='none'&&v ? `<b>${v.label}</b>${rows}<div class="src">${srcTxt}</div>` : `<b>Organizations</b>`}
+  let foodLegend = '';
+  if (state.mapshow === 'heat') foodLegend = `<b>Food received, last recorded stop</b><div class="row" style="gap:0"><i style="width:120px;height:11px;border-radius:2px;background:linear-gradient(90deg,var(--fq2),var(--fq3),var(--fq4),var(--fq5))"></i></div><div class="row" style="justify-content:space-between;width:120px"><span>less</span><span>more</span></div><div class="src">Kernel density of noncash food received by organizations that do not pass food on, weighted by value at organization addresses. Smoothing radius is about 3% of the frame; the surface shows where recorded deliveries land, not where food is eaten.</div>`;
+  else if (state.mapshow === 'tractfood'){ const ends = foodEnds(); computeTractFood(ends); if (tractFoodScale){ const q = tractFoodScale.quantiles(); const dom = tractFoodScale.domain(); const edges = [d3.min(dom), ...q, d3.max(dom)]; foodLegend = `<b>Food received by organizations in tract</b>${[0,1,2,3,4].map(i => `<div class="row"><i style="background:var(--fq${i+1})"></i>${fmt(edges[i])} &ndash; ${fmt(edges[i+1])}</div>`).join('')}<div class="row"><i style="background:var(--bg-2)"></i>No recorded recipient located here</div><div class="src">Sum of noncash food received by organizations located in the tract that do not pass food on; quintiles over tracts with any. Location, not service area.</div>`; } }
+  lg.innerHTML = `${foodLegend}${foodLegend ? '' : (k!=='none'&&v ? `<b>${v.label}</b>${rows}<div class="src">${srcTxt}</div>` : `<b>Organizations</b>`)}
     <div class="pt"><span><i class="dot" style="background:var(--food)"></i>Atlanta food org</span><span><i class="dot" style="background:var(--parent)"></i>Outside giver</span><span><i class="dot" style="background:var(--partner)"></i>Partner</span></div>
     <div class="pt"><span><i class="hollow"></i>Approximate location (P.O. Box ZIP or city)</span></div>`;
   lg.hidden = false;
@@ -578,7 +618,8 @@ function renderMapOverlays(){
   for (const l of G.links){ const v = val(l.e); if (l.source.id === l.target.id){ selfLoop += v; continue; } inTotal += v; if (!MAP.pts.has(l.target.id) || mapHidden(l.target)===false && false){ } }
   for (const l of G.links){ const v = val(l.e); if (l.source.id === l.target.id) continue; if (MAP.pts.has(l.target.id)) continue; unmappedIn.set(l.target.id, (unmappedIn.get(l.target.id)||0) + v); const nm = l.target.ref.name.toLowerCase(); if (nm.includes('below')) below += v; else if (l.target.id.startsWith('name:')) nameOnly += v; else noAddr += v; }
   const unm = d3.sum([...unmappedIn.values()]);
-  note.innerHTML = `<b>Points are organization addresses, not service areas.</b> Not on the map: ${unmappedIn.size} recipients receiving ${fmt(unm)} (${inTotal?(100*unm/inTotal).toFixed(0):0}% of dollars in view)${selfLoop?`, plus ${fmt(selfLoop)} distributed directly by the givers themselves`:''}. ${below?`The "Below $5,000" aggregate line is ${fmt(below)}. `:''}${nameOnly?`Recipients named without an EIN: ${fmt(nameOnly)}. `:''}${noAddr?`Unmatched or out-of-area addresses: ${fmt(noAddr)}. `:''}Empty tracts may be gaps in reporting, not in service.`;
+  const endsNote = state.mapshow !== 'orgs' ? `<b>The surface shows where recorded food deliveries land, not where food is eaten.</b> It counts noncash food received by organizations that do not pass food on; hubs, food banks and distribution cooperatives are excluded, even when they report no grants, so their intake does not swamp their partners. ` : '';
+  note.innerHTML = `${endsNote}<b>Points are organization addresses, not service areas.</b> Not on the map: ${unmappedIn.size} recipients receiving ${fmt(unm)} (${inTotal?(100*unm/inTotal).toFixed(0):0}% of dollars in view)${selfLoop?`, plus ${fmt(selfLoop)} distributed directly by the givers themselves`:''}. ${below?`The "Below $5,000" aggregate line is ${fmt(below)}. `:''}${nameOnly?`Recipients named without an EIN: ${fmt(nameOnly)}. `:''}${noAddr?`Unmatched or out-of-area addresses: ${fmt(noAddr)}. `:''}Empty tracts may be gaps in reporting, not in service.`;
   note.hidden = false;
 }
 
@@ -857,6 +898,8 @@ function setLayout(v){ state.layout = v; $('layoutseg').querySelectorAll('button
   document.querySelector('.hint').textContent = v==='sankey' ? 'Hover a ribbon for amounts \u00b7 click an organization' : v==='map' ? 'Drag to pan \u00b7 scroll to zoom \u00b7 hover a tract or a point' : 'Drag to pan \u00b7 scroll to zoom \u00b7 click an organization';
   skHover = null; mapHover = null; if (v==='sankey') computeSankey(); if (v==='map'){ transform = d3.zoomIdentity; d3.select(canvas).call(zoom.transform, transform); computeMap(); } renderMapOverlays(); needDraw = true; if (state.tab === 'map') updateUrl(false); }
 $('mapbase').value = state.mapbase; $('mapbase').addEventListener('change', ev => { state.mapbase = ev.target.value; renderMapOverlays(); needDraw = true; });
+$('mapshow').value = state.mapshow; $('mapshow').addEventListener('change', ev => { state.mapshow = ev.target.value; $('mapbase').disabled = state.mapshow !== 'orgs'; HEAT = null; renderMapOverlays(); needDraw = true; });
+$('mapbase').disabled = state.mapshow !== 'orgs';
 $('maphubs').checked = state.maphubs; $('maphubs').addEventListener('change', ev => { state.maphubs = ev.target.checked; renderMapOverlays(); needDraw = true; });
 $('mapflows').checked = state.mapflows; $('mapflows').addEventListener('change', ev => { state.mapflows = ev.target.checked; needDraw = true; });
 $('layoutseg').querySelectorAll('button').forEach(b => b.addEventListener('click', () => setLayout(b.dataset.v)));
@@ -1105,6 +1148,7 @@ function showProof(kind){
   else if (kind === 'tefap'){ setLayout('sankey'); setHighlight(null); select('fed:tefap'); }
   else if (kind === 'external'){ setLayout('sankey'); setHighlight(null); }
   else if (kind === 'map'){ setLayout('map'); setHighlight(null); }
+  else if (kind === 'heat'){ setLayout('map'); setHighlight(null); state.mapshow = 'heat'; $('mapshow').value = 'heat'; $('mapbase').disabled = true; HEAT = null; renderMapOverlays(); needDraw = true; }
   else if (kind.startsWith('county:')){ const fips = kind.slice(7); const nm = (T.counties && Object.values(T.counties).find(c => c.fips === fips)||{}).name || fips; setLayout('map'); const ids = DATA.nodes.filter(n => n.geo && n.geo.county === fips && n.kind !== 'parent').map(n => n.id); setHighlight(ids, `${ids.length} organizations located in ${nm}`); }
   window.scrollTo({top:0});
 }
