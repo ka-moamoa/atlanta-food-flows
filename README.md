@@ -4,7 +4,7 @@ Interactive map of food and cash grants between Atlanta-area food nonprofits, th
 
 **Live:** <https://ka-moamoa.github.io/atlanta-food-flows/>
 
-Permalinks: [/network](https://ka-moamoa.github.io/atlanta-food-flows/network), [/sankey](https://ka-moamoa.github.io/atlanta-food-flows/sankey), [/map](https://ka-moamoa.github.io/atlanta-food-flows/map), [/food-security](https://ka-moamoa.github.io/atlanta-food-flows/food-security), [/takeaways](https://ka-moamoa.github.io/atlanta-food-flows/takeaways), [/about](https://ka-moamoa.github.io/atlanta-food-flows/about). Each route folder holds a copy of the same page; the page reads the route from its path.
+Permalinks: [/network](https://ka-moamoa.github.io/atlanta-food-flows/network), [/sankey](https://ka-moamoa.github.io/atlanta-food-flows/sankey), [/map](https://ka-moamoa.github.io/atlanta-food-flows/map), [/food-security](https://ka-moamoa.github.io/atlanta-food-flows/food-security), [/takeaways](https://ka-moamoa.github.io/atlanta-food-flows/takeaways), [/priority-areas](https://ka-moamoa.github.io/atlanta-food-flows/priority-areas), [/about](https://ka-moamoa.github.io/atlanta-food-flows/about). Each route folder holds a copy of the same page; the page reads the route from its path.
 
 ## Credits
 
