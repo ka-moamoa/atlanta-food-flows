@@ -506,7 +506,7 @@ const KIND = {atl:'Atlanta food org', parent:'Outside supplier / funder', partne
 const css = k => getComputedStyle(document.documentElement).getPropertyValue(k).trim();
 
 // ---------- state ----------
-const state = { year:'latest', flow:'all', min:Math.pow(10,3.7), selected:null, hover:null, q:'', layout:'network', detail:12, mapbase:'lila', mapshow:'orgs', maphubs:false, mapflows:false, mapkumu:false, hl:null };
+const state = { tab:'map', year:'latest', flow:'all', min:Math.pow(10,3.7), selected:null, hover:null, q:'', layout:'network', detail:12, mapbase:'lila', mapshow:'orgs', maphubs:false, mapflows:false, mapkumu:false, hl:null };
 try { const h = window.claude && window.claude.hot && window.claude.hot.data; if (h && h.state) Object.assign(state, h.state); } catch(e){}
 if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => ({state}));
 
